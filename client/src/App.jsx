@@ -7,6 +7,7 @@ import DerivedVariables from './pages/DataManagement/DerivedVariables'
 import UploadPerformance from './pages/DataManagement/UploadPerformance'
 import UploadPolicyTransactions from './pages/DataManagement/UploadPolicyTransactions'
 import UploadAgents from './pages/DataManagement/UploadAgents'
+import UploadPersistencyData from './pages/DataManagement/UploadPersistencyData'
 import TeamPerformance from './pages/TeamPerformance'
 import Leaderboard from './pages/Leaderboard'
 import PayoutDisbursement from './pages/PayoutDisbursement'
@@ -22,6 +23,7 @@ function App() {
         <Route path="data/upload-performance" element={<UploadPerformance />} />
         <Route path="data/upload-transactions" element={<UploadPolicyTransactions />} />
         <Route path="data/upload-agents" element={<UploadAgents />} />
+        <Route path="data/upload-persistency" element={<UploadPersistencyData />} />
         <Route path="team/performance" element={<TeamPerformance />} />
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="payout/disbursement" element={<PayoutDisbursement />} />

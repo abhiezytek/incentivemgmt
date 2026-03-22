@@ -18,6 +18,7 @@ export const apiSlice = createApi({
     'DerivedVariables',
     'PolicyTransactions',
     'Agents',
+    'PersistencyData',
   ],
   endpoints: (builder) => ({
     // ── Programs ──────────────────────────────────────────────────────
@@ -137,6 +138,20 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Agents'],
     }),
+
+    // ── Persistency Data ──────────────────────────────────────────────
+    getPersistencyData: builder.query({
+      query: (params) => ({ url: '/persistency-data', params }),
+      providesTags: ['PersistencyData'],
+    }),
+    uploadPersistencyData: builder.mutation({
+      query: (body) => ({
+        url: '/persistency-data/upload',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['PersistencyData'],
+    }),
   }),
 })
 
@@ -178,4 +193,6 @@ export const {
   useUploadPolicyTransactionsMutation,
   useGetAgentsQuery,
   useUploadAgentsMutation,
+  useGetPersistencyDataQuery,
+  useUploadPersistencyDataMutation,
 } = apiSlice
