@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/admin/plans', label: 'Plans' },
   { to: '/plans/create', label: 'Create Plan' },
   { to: '/data/variables', label: 'Derived Variables' },
+  { to: '/data/upload-transactions', label: 'Upload Transactions' },
   { to: '/team/performance', label: 'Team Performance' },
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/payout/disbursement', label: 'Payout' },

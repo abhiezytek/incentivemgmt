@@ -9,6 +9,7 @@ import performanceRouter from './src/routes/performance.js';
 import calculateRouter from './src/routes/calculate.js';
 import groupsRouter from './src/routes/groups.js';
 import derivedVariablesRouter from './src/routes/derivedVariables.js';
+import policyTransactionsRouter from './src/routes/policyTransactions.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,7 @@ app.use('/api/performance', performanceRouter);
 app.use('/api/calculate', calculateRouter);
 app.use('/api/groups', groupsRouter);
 app.use('/api/derived-variables', derivedVariablesRouter);
+app.use('/api/policy-transactions', policyTransactionsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

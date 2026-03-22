@@ -5,6 +5,7 @@ import AdminPlanListing from './pages/AdminPlanListing'
 import CreatePlan from './pages/CreatePlan'
 import DerivedVariables from './pages/DataManagement/DerivedVariables'
 import UploadPerformance from './pages/DataManagement/UploadPerformance'
+import UploadPolicyTransactions from './pages/DataManagement/UploadPolicyTransactions'
 import TeamPerformance from './pages/TeamPerformance'
 import Leaderboard from './pages/Leaderboard'
 import PayoutDisbursement from './pages/PayoutDisbursement'
@@ -18,6 +19,7 @@ function App() {
         <Route path="plans/create" element={<CreatePlan />} />
         <Route path="data/variables" element={<DerivedVariables />} />
         <Route path="data/upload-performance" element={<UploadPerformance />} />
+        <Route path="data/upload-transactions" element={<UploadPolicyTransactions />} />
         <Route path="team/performance" element={<TeamPerformance />} />
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="payout/disbursement" element={<PayoutDisbursement />} />
