@@ -10,6 +10,7 @@ import UploadAgents from './pages/DataManagement/UploadAgents'
 import UploadPersistencyData from './pages/DataManagement/UploadPersistencyData'
 import UploadProducts from './pages/DataManagement/UploadProducts'
 import UploadIncentiveRates from './pages/DataManagement/UploadIncentiveRates'
+import UploadCenter from './pages/DataManagement/UploadCenter'
 import TeamPerformance from './pages/TeamPerformance'
 import Leaderboard from './pages/Leaderboard'
 import PayoutDisbursement from './pages/PayoutDisbursement'
@@ -22,6 +23,7 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="admin/plans" element={<AdminPlanListing />} />
         <Route path="plans/create" element={<CreatePlan />} />
+        <Route path="data/upload-center" element={<UploadCenter />} />
         <Route path="data/variables" element={<DerivedVariables />} />
         <Route path="data/upload-performance" element={<UploadPerformance />} />
         <Route path="data/upload-transactions" element={<UploadPolicyTransactions />} />

@@ -1,0 +1,6 @@
+product_code,product_name,product_category,product_type,min_premium,min_sum_assured,min_policy_term
+PROD-TERM-01,SecureLife Term Plan,PROTECTION,TERM,10000,200000,10
+PROD-ENDOW-01,WealthMax Endowment,SAVINGS,ENDOWMENT,25000,500000,15
+PROD-ULIP-01,GrowthPlus ULIP,INVESTMENT,ULIP,50000,500000,5
+PROD-WHOLE-01,LifeGuard Whole Life,PROTECTION,WHOLE_LIFE,15000,300000,0
+PROD-PENSION-01,RetireSafe Pension,RETIREMENT,PENSION,20000,0,10
