@@ -62,10 +62,10 @@ router.post('/upload', async (req, res) => {
 
     // Pre-fetch lookup maps for channel_code → id and region_code → id
     const channelRows = await query(`SELECT id, name FROM channels`);
-    const channelMap = new Map(channelRows.map((r) => [r.name.toUpperCase(), r.id]));
+    const channelMap = new Map(channelRows.filter((r) => r.name).map((r) => [r.name.toUpperCase(), r.id]));
 
     const regionRows = await query(`SELECT id, region_code FROM ins_regions`);
-    const regionMap = new Map(regionRows.map((r) => [r.region_code.toUpperCase(), r.id]));
+    const regionMap = new Map(regionRows.filter((r) => r.region_code).map((r) => [r.region_code.toUpperCase(), r.id]));
 
     const DB_COLUMNS = [
       'policy_number', 'agent_code', 'product_code', 'channel_id', 'region_id',
