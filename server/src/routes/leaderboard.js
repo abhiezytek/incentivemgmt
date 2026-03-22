@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
          AND r.period_start = $2
          AND ($3::text IS NULL OR c.code = $3)
          AND ($4::text IS NULL OR rg.region_code = $4)
-         AND r.status IN ('APPROVED','PAID','DRAFT')
+         AND r.status IN ('DRAFT','APPROVED','INITIATED','PAID')
        ORDER BY r.total_incentive DESC`,
       [programId, period, channel || null, region || null]
     );

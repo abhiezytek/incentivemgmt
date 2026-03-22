@@ -187,12 +187,12 @@ router.post('/bulk-approve', async (req, res) => {
 /**
  * POST /api/incentive-results/initiate-payment
  *
- * Move APPROVED results to INITIATED.
- * Body: { ids: [] }
+ * Move APPROVED results to INITIATED and log payment reference.
+ * Body: { ids: [], paymentReference?, paidBy? }
  */
 router.post('/initiate-payment', async (req, res) => {
   try {
-    const { ids } = req.body;
+    const { ids, paymentReference, paidBy } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'ids array is required' });
     }
@@ -204,6 +204,18 @@ router.post('/initiate-payment', async (req, res) => {
        RETURNING id`,
       [ids]
     );
+
+    if (rows.length > 0) {
+      const resultIds = rows.map((r) => r.id);
+      const values = resultIds.map((_, i) =>
+        `($${i + 1}, NOW(), $${resultIds.length + 1}, $${resultIds.length + 2})`
+      ).join(', ');
+      await query(
+        `INSERT INTO payout_disbursement_log (result_id, paid_at, paid_by, payment_reference)
+         VALUES ${values}`,
+        [...resultIds, paidBy || null, paymentReference || null]
+      );
+    }
 
     res.json({ count: rows.length });
   } catch (err) {
