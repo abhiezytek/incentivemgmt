@@ -15,6 +15,7 @@ import persistencyDataRouter from './src/routes/persistencyData.js';
 import productsRouter from './src/routes/products.js';
 import incentiveRatesRouter from './src/routes/incentiveRates.js';
 import uploadRouter from './src/routes/upload.js';
+import incentiveResultsRouter from './src/routes/incentiveResults.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +40,7 @@ app.use('/api/persistency-data', persistencyDataRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/incentive-rates', incentiveRatesRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/incentive-results', incentiveResultsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/team/performance', label: 'Team Performance' },
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/payout/disbursement', label: 'Payout' },
+  { to: '/incentive/breakdown', label: 'Incentive Breakdown' },
 ]
 
 export default function AppShell() {

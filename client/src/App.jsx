@@ -13,6 +13,7 @@ import UploadIncentiveRates from './pages/DataManagement/UploadIncentiveRates'
 import TeamPerformance from './pages/TeamPerformance'
 import Leaderboard from './pages/Leaderboard'
 import PayoutDisbursement from './pages/PayoutDisbursement'
+import IncentiveBreakdown from './pages/IncentiveBreakdown'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="team/performance" element={<TeamPerformance />} />
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="payout/disbursement" element={<PayoutDisbursement />} />
+        <Route path="incentive/breakdown" element={<IncentiveBreakdown />} />
       </Route>
     </Routes>
   )
