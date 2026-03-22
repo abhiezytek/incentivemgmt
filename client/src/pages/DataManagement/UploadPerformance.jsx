@@ -264,7 +264,7 @@ export default function UploadPerformance() {
           </button>
         ) : (
           <>
-            <span className="text-sm text-green-600 font-medium">
+            <span className="text-sm font-medium text-green-600">
               ✓ {uploadCount} rows uploaded
             </span>
             <button
