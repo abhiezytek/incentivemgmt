@@ -17,6 +17,7 @@ export const apiSlice = createApi({
     'Incentives',
     'DerivedVariables',
     'PolicyTransactions',
+    'Agents',
   ],
   endpoints: (builder) => ({
     // ── Programs ──────────────────────────────────────────────────────
@@ -122,6 +123,20 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['PolicyTransactions'],
     }),
+
+    // ── Agents ────────────────────────────────────────────────────────
+    getAgents: builder.query({
+      query: (params) => ({ url: '/agents', params }),
+      providesTags: ['Agents'],
+    }),
+    uploadAgents: builder.mutation({
+      query: (body) => ({
+        url: '/agents/upload',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Agents'],
+    }),
   }),
 })
 
@@ -161,4 +176,6 @@ export const {
   useCreateDerivedVariableMutation,
   useGetPolicyTransactionsQuery,
   useUploadPolicyTransactionsMutation,
+  useGetAgentsQuery,
+  useUploadAgentsMutation,
 } = apiSlice

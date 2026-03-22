@@ -10,6 +10,7 @@ import calculateRouter from './src/routes/calculate.js';
 import groupsRouter from './src/routes/groups.js';
 import derivedVariablesRouter from './src/routes/derivedVariables.js';
 import policyTransactionsRouter from './src/routes/policyTransactions.js';
+import agentsRouter from './src/routes/agents.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,6 +30,7 @@ app.use('/api/calculate', calculateRouter);
 app.use('/api/groups', groupsRouter);
 app.use('/api/derived-variables', derivedVariablesRouter);
 app.use('/api/policy-transactions', policyTransactionsRouter);
+app.use('/api/agents', agentsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
