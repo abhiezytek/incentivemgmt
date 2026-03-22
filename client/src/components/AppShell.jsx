@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/data/upload-transactions', label: 'Upload Transactions' },
   { to: '/data/upload-agents', label: 'Upload Agents' },
   { to: '/data/upload-persistency', label: 'Upload Persistency' },
+  { to: '/data/upload-products', label: 'Upload Products' },
   { to: '/team/performance', label: 'Team Performance' },
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/payout/disbursement', label: 'Payout' },

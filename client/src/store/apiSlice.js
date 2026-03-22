@@ -19,6 +19,7 @@ export const apiSlice = createApi({
     'PolicyTransactions',
     'Agents',
     'PersistencyData',
+    'Products',
   ],
   endpoints: (builder) => ({
     // ── Programs ──────────────────────────────────────────────────────
@@ -152,6 +153,20 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['PersistencyData'],
     }),
+
+    // ── Products ──────────────────────────────────────────────────────
+    getProducts: builder.query({
+      query: (params) => ({ url: '/products', params }),
+      providesTags: ['Products'],
+    }),
+    uploadProducts: builder.mutation({
+      query: (body) => ({
+        url: '/products/upload',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Products'],
+    }),
   }),
 })
 
@@ -195,4 +210,6 @@ export const {
   useUploadAgentsMutation,
   useGetPersistencyDataQuery,
   useUploadPersistencyDataMutation,
+  useGetProductsQuery,
+  useUploadProductsMutation,
 } = apiSlice

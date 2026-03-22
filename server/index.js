@@ -12,6 +12,7 @@ import derivedVariablesRouter from './src/routes/derivedVariables.js';
 import policyTransactionsRouter from './src/routes/policyTransactions.js';
 import agentsRouter from './src/routes/agents.js';
 import persistencyDataRouter from './src/routes/persistencyData.js';
+import productsRouter from './src/routes/products.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +34,7 @@ app.use('/api/derived-variables', derivedVariablesRouter);
 app.use('/api/policy-transactions', policyTransactionsRouter);
 app.use('/api/agents', agentsRouter);
 app.use('/api/persistency-data', persistencyDataRouter);
+app.use('/api/products', productsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
