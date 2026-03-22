@@ -4,17 +4,12 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard' },
   { to: '/admin/plans', label: 'Plans' },
   { to: '/plans/create', label: 'Create Plan' },
-  { to: '/data/upload-center', label: 'Upload Center' },
+  { to: '/data/upload', label: 'Upload Center' },
   { to: '/data/variables', label: 'Derived Variables' },
-  { to: '/data/upload-transactions', label: 'Upload Transactions' },
-  { to: '/data/upload-agents', label: 'Upload Agents' },
-  { to: '/data/upload-persistency', label: 'Upload Persistency' },
-  { to: '/data/upload-products', label: 'Upload Products' },
-  { to: '/data/upload-rates', label: 'Upload Rates' },
-  { to: '/team/performance', label: 'Team Performance' },
-  { to: '/leaderboard', label: 'Leaderboard' },
-  { to: '/payout/disbursement', label: 'Payout' },
   { to: '/incentive/breakdown', label: 'Incentive Breakdown' },
+  { to: '/incentive/leaderboard', label: 'Leaderboard' },
+  { to: '/payout/disbursement', label: 'Payout' },
+  { to: '/team/performance', label: 'Team Performance' },
 ]
 
 export default function AppShell() {
