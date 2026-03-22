@@ -7,12 +7,20 @@ import Step5_PayoutRules from './Step5_PayoutRules'
 
 const STEPS = [
   'Plan Details',
-  'KPI Definitions',
   'User Groups',
   'KPI Rules',
   'Payout Rules & Slabs',
+  'Qualifying Rules',
   'Review & Publish',
 ]
+
+/** Strip client-only fields before sending to API */
+const CLIENT_ONLY_KEYS = ['banner', 'bannerPreview', 'is_sales_contest']
+const toProgramBody = (planData) => {
+  return Object.fromEntries(
+    Object.entries(planData).filter(([k]) => !CLIENT_ONLY_KEYS.includes(k)),
+  )
+}
 
 export default function CreatePlan() {
   const [step, setStep] = useState(0)
@@ -30,16 +38,14 @@ export default function CreatePlan() {
     // On Step 0 → Step 1: persist the program
     if (step === 0 && !programId) {
       try {
-        const { banner: _b, bannerPreview: _bp, is_sales_contest: _sc, ...body } = planData
-        const result = await createProgram(body).unwrap()
+        const result = await createProgram(toProgramBody(planData)).unwrap()
         setProgramId(result.id)
       } catch {
         return // stay on step if save fails
       }
     } else if (step === 0 && programId) {
       try {
-        const { banner: _b2, bannerPreview: _bp2, is_sales_contest: _sc2, ...body } = planData
-        await updateProgram({ id: programId, ...body }).unwrap()
+        await updateProgram({ id: programId, ...toProgramBody(planData) }).unwrap()
       } catch {
         return
       }
@@ -54,23 +60,25 @@ export default function CreatePlan() {
       case 0:
         return <Step1_PlanDetails data={planData} onUpdate={handlePlanUpdate} />
       case 1:
-        return (
-          <Step4_KPIRules
-            programId={programId}
-            onNext={() => setStep(2)}
-          />
-        )
-      case 2:
         return <Step3_UserGroups programId={programId} />
-      case 3:
+      case 2:
         return (
           <Step4_KPIRules
             programId={programId}
-            onNext={() => setStep(4)}
+            onNext={() => setStep(3)}
           />
         )
-      case 4:
+      case 3:
         return <Step5_PayoutRules programId={programId} />
+      case 4:
+        return (
+          <div className="rounded-lg border border-gray-200 bg-white p-6 font-[Inter]">
+            <h2 className="text-lg font-semibold text-teal-700">Qualifying Rules</h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Configure qualifying rules for this incentive program.
+            </p>
+          </div>
+        )
       case 5:
         return (
           <div className="rounded-lg border border-gray-200 bg-white p-6 font-[Inter]">
