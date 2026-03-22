@@ -229,5 +229,7 @@ CREATE TABLE ins_incentive_results (
   status                VARCHAR(30) DEFAULT 'DRAFT',  -- DRAFT/APPROVED/PAID
   calculated_at         TIMESTAMP DEFAULT NOW(),
   approved_by           INT,
-  approved_at           TIMESTAMP
+  approved_at           TIMESTAMP,
+
+  CONSTRAINT uq_incentive_results UNIQUE (agent_code, program_id, period_start)
 );
