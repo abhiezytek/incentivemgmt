@@ -21,14 +21,17 @@ BEGIN
     SUM(annualized_premium) FILTER (WHERE transaction_type = 'NEW_BUSINESS'),
 
     -- Product-wise NB breakdown as JSONB
-    jsonb_object_agg(
-      p.product_code,
-      jsonb_build_object(
-        'count', COUNT(*) FILTER (WHERE t.transaction_type='NEW_BUSINESS'),
-        'premium', SUM(t.premium_amount) FILTER (WHERE t.transaction_type='NEW_BUSINESS'),
-        'ape', SUM(t.annualized_premium) FILTER (WHERE t.transaction_type='NEW_BUSINESS')
-      )
-    ) FILTER (WHERE transaction_type = 'NEW_BUSINESS'),
+    COALESCE(
+      jsonb_object_agg(
+        p.product_code,
+        jsonb_build_object(
+          'count', COUNT(*) FILTER (WHERE t.transaction_type='NEW_BUSINESS'),
+          'premium', SUM(t.premium_amount) FILTER (WHERE t.transaction_type='NEW_BUSINESS'),
+          'ape', SUM(t.annualized_premium) FILTER (WHERE t.transaction_type='NEW_BUSINESS')
+        )
+      ) FILTER (WHERE transaction_type = 'NEW_BUSINESS'),
+      '{}'::jsonb
+    ),
 
     -- Renewal
     SUM(premium_amount) FILTER (WHERE transaction_type = 'RENEWAL'),

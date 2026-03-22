@@ -187,7 +187,9 @@ CREATE TABLE ins_agent_kpi_summary (
   total_score             NUMERIC DEFAULT 0,
 
   is_computed             BOOLEAN DEFAULT FALSE,
-  computed_at             TIMESTAMP
+  computed_at             TIMESTAMP,
+
+  CONSTRAINT uq_agent_kpi_summary UNIQUE (agent_code, program_id, period_start)
 );
 
 -- ─────────────────────────────────────────────
