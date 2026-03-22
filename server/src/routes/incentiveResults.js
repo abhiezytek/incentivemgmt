@@ -4,6 +4,38 @@ import { query } from '../db/pool.js';
 const router = Router();
 
 /**
+ * GET /api/incentive-results/stage-summary
+ *
+ * Returns counts of results grouped by status for the pipeline view.
+ * Query: programId, periodStart (both optional)
+ */
+router.get('/stage-summary', async (req, res) => {
+  try {
+    const { programId, periodStart } = req.query;
+    const conditions = [];
+    const params = [];
+    if (programId) { params.push(programId); conditions.push(`program_id = $${params.length}`); }
+    if (periodStart) { params.push(periodStart); conditions.push(`period_start = $${params.length}`); }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const rows = await query(
+      `SELECT status, COUNT(*)::int AS count, COALESCE(SUM(total_incentive),0) AS total
+       FROM ins_incentive_results ${where}
+       GROUP BY status`,
+      params
+    );
+
+    const summary = {};
+    for (const r of rows) {
+      summary[r.status] = { count: r.count, total: Number(r.total) };
+    }
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/incentive-results/summary
  *
  * Aggregate totals by channel for a given program + period.
