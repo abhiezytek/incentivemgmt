@@ -128,18 +128,48 @@ router.get('/', async (req, res) => {
 /**
  * POST /api/incentive-results/bulk-approve
  *
- * Approve all DRAFT results for a given program + period
- * that have passed the persistency gate.
- * Body: { programId, periodStart, approvedBy }
+ * Approve DRAFT results that have passed the persistency gate.
+ * Body: { ids?, programId?, periodStart?, approvedBy? }
+ * - If ids given → approve only those ids
+ * - Else → approve all DRAFT for programId + periodStart
  */
 router.post('/bulk-approve', async (req, res) => {
   try {
-    const { programId, periodStart, approvedBy } = req.body;
-    if (!programId || !periodStart) {
-      return res.status(400).json({ error: 'programId and periodStart are required' });
+    const { ids, programId, periodStart, approvedBy } = req.body;
+
+    let rows;
+    if (Array.isArray(ids) && ids.length > 0) {
+      rows = await query(
+        `UPDATE ins_incentive_results
+         SET status = 'APPROVED', approved_by = $1, approved_at = NOW()
+         WHERE id = ANY($2::int[])
+           AND status = 'DRAFT' AND persistency_gate_passed = TRUE
+         RETURNING id`,
+        [approvedBy || null, ids]
+      );
+
+      const skippedRows = await query(
+        `SELECT COUNT(*)::int AS cnt FROM ins_incentive_results
+         WHERE id = ANY($1::int[]) AND status = 'DRAFT' AND persistency_gate_passed = FALSE`,
+        [ids]
+      );
+      const skipped = skippedRows[0]?.cnt || 0;
+      return res.json({ approved: rows.length, skipped_gate_failed: skipped });
     }
 
-    const rows = await query(
+    if (!programId || !periodStart) {
+      return res.status(400).json({ error: 'programId and periodStart are required when ids not provided' });
+    }
+
+    const skippedRows = await query(
+      `SELECT COUNT(*)::int AS cnt FROM ins_incentive_results
+       WHERE program_id = $1 AND period_start = $2
+         AND status = 'DRAFT' AND persistency_gate_passed = FALSE`,
+      [programId, periodStart]
+    );
+    const skipped = skippedRows[0]?.cnt || 0;
+
+    rows = await query(
       `UPDATE ins_incentive_results
        SET status = 'APPROVED', approved_by = $1, approved_at = NOW()
        WHERE program_id = $2 AND period_start = $3
@@ -148,7 +178,34 @@ router.post('/bulk-approve', async (req, res) => {
       [approvedBy || null, programId, periodStart]
     );
 
-    res.json({ success: true, approvedCount: rows.length });
+    res.json({ approved: rows.length, skipped_gate_failed: skipped, approvedCount: rows.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/incentive-results/initiate-payment
+ *
+ * Move APPROVED results to INITIATED.
+ * Body: { ids: [] }
+ */
+router.post('/initiate-payment', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required' });
+    }
+
+    const rows = await query(
+      `UPDATE ins_incentive_results
+       SET status = 'INITIATED'
+       WHERE id = ANY($1::int[]) AND status = 'APPROVED'
+       RETURNING id`,
+      [ids]
+    );
+
+    res.json({ count: rows.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -157,25 +214,47 @@ router.post('/bulk-approve', async (req, res) => {
 /**
  * POST /api/incentive-results/mark-paid
  *
- * Move all APPROVED results to PAID for a given program + period.
- * Body: { programId, periodStart }
+ * Move INITIATED results to PAID and log to payout_disbursement_log.
+ * Body: { ids: [], programId?, periodStart?, paidBy? }
+ * - If ids given → mark only those ids
+ * - Else → mark all INITIATED for programId + periodStart
  */
 router.post('/mark-paid', async (req, res) => {
   try {
-    const { programId, periodStart } = req.body;
-    if (!programId || !periodStart) {
-      return res.status(400).json({ error: 'programId and periodStart are required' });
+    const { ids, programId, periodStart, paidBy } = req.body;
+
+    let rows;
+    if (Array.isArray(ids) && ids.length > 0) {
+      rows = await query(
+        `UPDATE ins_incentive_results
+         SET status = 'PAID'
+         WHERE id = ANY($1::int[]) AND status = 'INITIATED'
+         RETURNING id`,
+        [ids]
+      );
+    } else if (programId && periodStart) {
+      rows = await query(
+        `UPDATE ins_incentive_results
+         SET status = 'PAID'
+         WHERE program_id = $1 AND period_start = $2 AND status = 'INITIATED'
+         RETURNING id`,
+        [programId, periodStart]
+      );
+    } else {
+      return res.status(400).json({ error: 'ids or (programId + periodStart) required' });
     }
 
-    const rows = await query(
-      `UPDATE ins_incentive_results
-       SET status = 'PAID'
-       WHERE program_id = $1 AND period_start = $2 AND status = 'APPROVED'
-       RETURNING id`,
-      [programId, periodStart]
-    );
+    if (rows.length > 0) {
+      const resultIds = rows.map((r) => r.id);
+      const values = resultIds.map((_, i) => `($${i + 1}, NOW(), $${resultIds.length + 1})`).join(', ');
+      await query(
+        `INSERT INTO payout_disbursement_log (result_id, paid_at, paid_by)
+         VALUES ${values}`,
+        [...resultIds, paidBy || null]
+      );
+    }
 
-    res.json({ success: true, paidCount: rows.length });
+    res.json({ paid: rows.length, paidCount: rows.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
