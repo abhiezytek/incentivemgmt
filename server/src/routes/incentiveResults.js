@@ -4,6 +4,40 @@ import { query } from '../db/pool.js';
 const router = Router();
 
 /**
+ * GET /api/incentive-results/summary
+ *
+ * Aggregate totals by channel for a given program + period.
+ * Query: programId (required), periodStart (required)
+ */
+router.get('/summary', async (req, res) => {
+  try {
+    const { programId, periodStart } = req.query;
+    if (!programId || !periodStart) {
+      return res.status(400).json({ error: 'programId and periodStart are required' });
+    }
+
+    const rows = await query(
+      `SELECT c.name AS channel,
+              COUNT(*)::int AS agent_count,
+              SUM(r.total_incentive) AS total_pool,
+              AVG(r.total_incentive) AS avg_incentive,
+              SUM(CASE WHEN r.status = 'PAID' THEN 1 ELSE 0 END)::int AS paid_count
+       FROM ins_incentive_results r
+       JOIN ins_agents a ON a.agent_code = r.agent_code
+       JOIN channels c ON c.id = a.channel_id
+       WHERE r.program_id = $1 AND r.period_start = $2
+       GROUP BY c.name
+       ORDER BY total_pool DESC`,
+      [programId, periodStart]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/incentive-results
  *
  * List incentive results with optional filters:
@@ -60,19 +94,77 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * POST /api/incentive-results/bulk-approve
+ *
+ * Approve all DRAFT results for a given program + period
+ * that have passed the persistency gate.
+ * Body: { programId, periodStart, approvedBy }
+ */
+router.post('/bulk-approve', async (req, res) => {
+  try {
+    const { programId, periodStart, approvedBy } = req.body;
+    if (!programId || !periodStart) {
+      return res.status(400).json({ error: 'programId and periodStart are required' });
+    }
+
+    const rows = await query(
+      `UPDATE ins_incentive_results
+       SET status = 'APPROVED', approved_by = $1, approved_at = NOW()
+       WHERE program_id = $2 AND period_start = $3
+         AND status = 'DRAFT' AND persistency_gate_passed = TRUE
+       RETURNING id`,
+      [approvedBy || null, programId, periodStart]
+    );
+
+    res.json({ success: true, approvedCount: rows.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/incentive-results/mark-paid
+ *
+ * Move all APPROVED results to PAID for a given program + period.
+ * Body: { programId, periodStart }
+ */
+router.post('/mark-paid', async (req, res) => {
+  try {
+    const { programId, periodStart } = req.body;
+    if (!programId || !periodStart) {
+      return res.status(400).json({ error: 'programId and periodStart are required' });
+    }
+
+    const rows = await query(
+      `UPDATE ins_incentive_results
+       SET status = 'PAID'
+       WHERE program_id = $1 AND period_start = $2 AND status = 'APPROVED'
+       RETURNING id`,
+      [programId, periodStart]
+    );
+
+    res.json({ success: true, paidCount: rows.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/incentive-results/:id/approve
  *
- * Move a result from DRAFT → APPROVED.
+ * Move a single result from DRAFT → APPROVED.
+ * Body (optional): { approvedBy }
  */
 router.post('/:id/approve', async (req, res) => {
   try {
     const { id } = req.params;
+    const { approvedBy } = req.body || {};
     const rows = await query(
       `UPDATE ins_incentive_results
-       SET status = 'APPROVED', approved_at = NOW()
+       SET status = 'APPROVED', approved_by = $2, approved_at = NOW()
        WHERE id = $1 AND status = 'DRAFT'
        RETURNING id, status`,
-      [id]
+      [id, approvedBy || null]
     );
 
     if (!rows.length) {
