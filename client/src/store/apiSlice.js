@@ -7,6 +7,7 @@ export const apiSlice = createApi({
   }),
   tagTypes: [
     'Programs',
+    'Channels',
     'Kpis',
     'Milestones',
     'PayoutRules',
@@ -18,6 +19,7 @@ export const apiSlice = createApi({
   ],
   endpoints: (builder) => ({
     // ── Programs ──────────────────────────────────────────────────────
+    getChannels: builder.query({ query: () => '/channels', providesTags: ['Channels'] }),
     getPrograms: builder.query({ query: () => '/programs', providesTags: ['Programs'] }),
     getProgram: builder.query({ query: (id) => `/programs/${id}`, providesTags: (_r, _e, id) => [{ type: 'Programs', id }] }),
     createProgram: builder.mutation({ query: (body) => ({ url: '/programs', method: 'POST', body }), invalidatesTags: ['Programs'] }),
@@ -105,6 +107,7 @@ export const apiSlice = createApi({
 })
 
 export const {
+  useGetChannelsQuery,
   useGetProgramsQuery,
   useGetProgramQuery,
   useCreateProgramMutation,
