@@ -2,6 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
+import programsRouter from './src/routes/programs.js';
+import kpisRouter from './src/routes/kpis.js';
+import payoutsRouter from './src/routes/payouts.js';
+import performanceRouter from './src/routes/performance.js';
+import calculateRouter from './src/routes/calculate.js';
+import groupsRouter from './src/routes/groups.js';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -11,6 +18,13 @@ app.use(express.json());
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/api/programs', programsRouter);
+app.use('/api/kpis', kpisRouter);
+app.use('/api/payouts', payoutsRouter);
+app.use('/api/performance', performanceRouter);
+app.use('/api/calculate', calculateRouter);
+app.use('/api/groups', groupsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
