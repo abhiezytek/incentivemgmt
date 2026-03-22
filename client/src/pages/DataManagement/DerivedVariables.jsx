@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   useGetDerivedVariablesQuery,
   useCreateDerivedVariableMutation,
-} from '../store/apiSlice'
+} from '../../store/apiSlice'
 
 export default function DerivedVariables() {
   const { data: variables = [], isLoading, isError } = useGetDerivedVariablesQuery()
