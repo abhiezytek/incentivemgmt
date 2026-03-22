@@ -20,6 +20,7 @@ export const apiSlice = createApi({
     'Agents',
     'PersistencyData',
     'Products',
+    'IncentiveRates',
   ],
   endpoints: (builder) => ({
     // ── Programs ──────────────────────────────────────────────────────
@@ -167,6 +168,20 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Products'],
     }),
+
+    // ── Incentive Rates ───────────────────────────────────────────────
+    getIncentiveRates: builder.query({
+      query: (params) => ({ url: '/incentive-rates', params }),
+      providesTags: ['IncentiveRates'],
+    }),
+    uploadIncentiveRates: builder.mutation({
+      query: (body) => ({
+        url: '/incentive-rates/upload',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['IncentiveRates'],
+    }),
   }),
 })
 
@@ -212,4 +227,6 @@ export const {
   useUploadPersistencyDataMutation,
   useGetProductsQuery,
   useUploadProductsMutation,
+  useGetIncentiveRatesQuery,
+  useUploadIncentiveRatesMutation,
 } = apiSlice
