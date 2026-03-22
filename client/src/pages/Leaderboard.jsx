@@ -87,7 +87,7 @@ export default function Leaderboard() {
             { label: 'Total Pool', value: fmt(summary.total_pool) },
             { label: 'Agent Count', value: summary.agent_count ?? '—' },
             { label: 'Avg Incentive', value: fmt(summary.avg_incentive) },
-            { label: 'Top Performer', value: summary.top_performer ?? '—' },
+            { label: 'Top Performer', value: summary.top_earner ?? '—' },
           ].map(({ label, value }) => (
             <div
               key={label}
@@ -194,7 +194,7 @@ export default function Leaderboard() {
                 const rank = idx + 1
                 const medal = MEDAL[idx]
                 const medalBg = MEDAL_BG[idx]
-                const achievement = Number(r.achievement_pct || 0)
+                const achievementPct = Number(r.achievement_pct || r.nb_achievement_pct || 0)
 
                 return (
                   <tr
@@ -216,7 +216,7 @@ export default function Leaderboard() {
                       {r.agent_name || r.agent_code || '—'}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {r.channel_name ?? '—'}
+                      {r.channel ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-700">
                       {fmt(r.net_self_incentive)}
@@ -232,11 +232,11 @@ export default function Leaderboard() {
                         <div className="h-2 flex-1 rounded-full bg-gray-200">
                           <div
                             className="h-2 rounded-full bg-teal-500"
-                            style={{ width: `${Math.min(achievement, 100)}%` }}
+                            style={{ width: `${Math.min(achievementPct, 100)}%` }}
                           />
                         </div>
                         <span className="w-12 text-right text-xs text-gray-600">
-                          {pct(achievement)}
+                          {pct(achievementPct)}
                         </span>
                       </div>
                     </td>
