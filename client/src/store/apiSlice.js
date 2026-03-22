@@ -103,6 +103,10 @@ export const apiSlice = createApi({
       query: () => '/derived-variables',
       providesTags: ['DerivedVariables'],
     }),
+    createDerivedVariable: builder.mutation({
+      query: (body) => ({ url: '/derived-variables', method: 'POST', body }),
+      invalidatesTags: ['DerivedVariables'],
+    }),
   }),
 })
 
@@ -139,4 +143,5 @@ export const {
   useCalculateIncentiveMutation,
   useGetResultsQuery,
   useGetDerivedVariablesQuery,
+  useCreateDerivedVariableMutation,
 } = apiSlice
