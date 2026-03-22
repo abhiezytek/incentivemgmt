@@ -26,19 +26,24 @@ router.post('/policy-transactions', upload.single('file'), async (req, res) => {
     const err = validateColumns(rows, REQUIRED);
     if (err) return res.status(400).json({ error: err });
 
-    // Resolve channel_id and region_id from codes
-    const mapped = await Promise.all(rows.map(async r => {
-      const ch = await query(`SELECT id FROM channels WHERE code=$1`, [r.channel_code]);
-      const rg = await query(`SELECT id FROM ins_regions WHERE region_code=$1`, [r.region_code]);
+    // Pre-fetch lookup maps
+    const channelRows = await query(`SELECT id, name FROM channels`);
+    const channelMap = new Map(channelRows.filter(r => r.name).map(r => [r.name.toUpperCase(), r.id]));
+    const regionRows = await query(`SELECT id, region_code FROM ins_regions`);
+    const regionMap = new Map(regionRows.filter(r => r.region_code).map(r => [r.region_code.toUpperCase(), r.id]));
+
+    const mapped = rows.map(r => {
+      const channelId = r.channel_code ? channelMap.get(r.channel_code.toUpperCase()) || null : null;
+      const regionId = r.region_code ? regionMap.get(r.region_code.toUpperCase()) || null : null;
       return [
         r.policy_number, r.agent_code, r.product_code,
-        ch[0]?.id || null, rg[0]?.id || null,
+        channelId, regionId,
         r.transaction_type, r.policy_year || 1,
         r.premium_amount, r.sum_assured, r.annualized_premium,
         r.payment_mode, r.issue_date, r.due_date,
         r.paid_date || null, r.policy_status || 'ACTIVE', 'UPLOAD'
       ];
-    }));
+    });
 
     const cols = ['policy_number','agent_code','product_code','channel_id','region_id',
                   'transaction_type','policy_year','premium_amount','sum_assured',
@@ -75,32 +80,28 @@ router.post('/agents', upload.single('file'), async (req, res) => {
     const err = validateColumns(rows, REQUIRED);
     if (err) return res.status(400).json({ error: err });
 
-    // Build hierarchy_path from parent_agent_code
-    const agentMap = {};
-    rows.forEach(r => { agentMap[r.agent_code] = r; });
+    // Pre-fetch lookup maps
+    const channelRows = await query(`SELECT id, name FROM channels`);
+    const channelMap = new Map(channelRows.filter(r => r.name).map(r => [r.name.toUpperCase(), r.id]));
+    const regionRows = await query(`SELECT id, region_code FROM ins_regions`);
+    const regionMap = new Map(regionRows.filter(r => r.region_code).map(r => [r.region_code.toUpperCase(), r.id]));
+    const existingAgents = await query(`SELECT id, agent_code FROM ins_agents`);
+    const agentLookup = new Map(existingAgents.map(r => [r.agent_code.toUpperCase(), r.id]));
 
-    const mapped = await Promise.all(rows.map(async r => {
-      const ch = await query(`SELECT id FROM channels WHERE code=$1`, [r.channel_code]);
-      const rg = await query(`SELECT id FROM ins_regions WHERE region_code=$1`, [r.region_code]);
-
-      // Get parent DB id for hierarchy path
-      let parentId = null;
-      if (r.parent_agent_code) {
-        const parent = await query(
-          `SELECT id, hierarchy_path FROM ins_agents WHERE agent_code=$1`,
-          [r.parent_agent_code]);
-        if (parent[0]) {
-          parentId = parent[0].id;
-        }
-      }
+    const mapped = rows.map(r => {
+      const channelId = r.channel_code ? channelMap.get(r.channel_code.toUpperCase()) || null : null;
+      const regionId = r.region_code ? regionMap.get(r.region_code.toUpperCase()) || null : null;
+      const parentId = r.parent_agent_code
+        ? agentLookup.get(r.parent_agent_code.toUpperCase()) || null
+        : null;
 
       return [
-        r.agent_code, r.agent_name, ch[0]?.id, rg[0]?.id,
+        r.agent_code, r.agent_name, channelId, regionId,
         r.branch_code, r.license_number, r.license_expiry || null,
         r.activation_date || null, parentId,
         r.hierarchy_level || 1, r.status || 'ACTIVE'
       ];
-    }));
+    });
 
     const cols = ['agent_code','agent_name','channel_id','region_id','branch_code',
                   'license_number','license_expiry','activation_date',
@@ -178,17 +179,21 @@ router.post('/incentive-rates', upload.single('file'), async (req, res) => {
     const { programId } = req.body;
     const rows = await parseCSV(req.file.buffer);
 
-    const mapped = await Promise.all(rows.map(async r => {
-      const ch = await query(`SELECT id FROM channels WHERE code=$1`, [r.channel_code]);
+    // Pre-fetch channel lookup
+    const channelRows = await query(`SELECT id, name FROM channels`);
+    const channelMap = new Map(channelRows.filter(r => r.name).map(r => [r.name.toUpperCase(), r.id]));
+
+    const mapped = rows.map(r => {
+      const channelId = r.channel_code ? channelMap.get(r.channel_code.toUpperCase()) || null : null;
       return [
-        programId, r.product_code, ch[0]?.id,
+        programId, r.product_code, channelId,
         r.policy_year, r.transaction_type, r.rate_type,
         r.incentive_rate, r.min_premium_slab || 0,
         r.max_premium_slab || 999999999,
         r.min_policy_term || 0, r.max_policy_term || 99,
         r.effective_from, r.effective_to || null, true
       ];
-    }));
+    });
 
     const cols = ['program_id','product_code','channel_id','policy_year',
                   'transaction_type','rate_type','incentive_rate',
