@@ -28,8 +28,12 @@ export default function PayoutDisbursement() {
 
   const fetchAgents = async () => {
     setLoading(true);
+    const filterParams = { ...filters };
+    if (filterParams.periodStart && !filterParams.periodStart.includes('-', 5)) {
+      filterParams.periodStart = `${filterParams.periodStart}-01`;
+    }
     const p = new URLSearchParams(
-      Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
+      Object.fromEntries(Object.entries(filterParams).filter(([, v]) => v)),
     );
     try {
       const [agentsRes, summaryRes] = await Promise.all([
@@ -265,14 +269,15 @@ export default function PayoutDisbursement() {
         <button
           type="button"
           disabled={actionLoading === 'approve' || !filters.programId || !filters.periodStart}
-          onClick={() =>
+          onClick={() => {
+            const ps = filters.periodStart.length === 7 ? `${filters.periodStart}-01` : filters.periodStart;
             bulkAction(
               'bulk-approve',
-              { programId: filters.programId, periodStart: filters.periodStart },
+              { programId: filters.programId, periodStart: ps },
               'approve',
               (d) => `✅ ${d.approvedCount ?? 0} result(s) approved`,
-            )
-          }
+            );
+          }}
           className="rounded-md border border-blue-400 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-40"
         >
           {actionLoading === 'approve' ? '…' : '✅ Bulk Approve'}
@@ -280,14 +285,15 @@ export default function PayoutDisbursement() {
         <button
           type="button"
           disabled={actionLoading === 'paid' || !filters.programId || !filters.periodStart}
-          onClick={() =>
+          onClick={() => {
+            const ps = filters.periodStart.length === 7 ? `${filters.periodStart}-01` : filters.periodStart;
             bulkAction(
               'mark-paid',
-              { programId: filters.programId, periodStart: filters.periodStart },
+              { programId: filters.programId, periodStart: ps },
               'paid',
               (d) => `💸 ${d.paidCount ?? 0} result(s) marked paid`,
-            )
-          }
+            );
+          }}
           className="rounded-md border border-green-400 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:opacity-40"
         >
           {actionLoading === 'paid' ? '…' : '💸 Mark Paid'}
@@ -383,13 +389,11 @@ function SingleActionButton({ agent, onDone, API }) {
     DRAFT: {
       label: 'Approve',
       endpoint: `${agent.id}/approve`,
+      body: {},
       style: 'text-blue-600 border-blue-300 hover:bg-blue-50',
     },
-    APPROVED: {
-      label: 'Mark Paid',
-      endpoint: 'mark-paid',
-      style: 'text-green-700 border-green-300 hover:bg-green-50',
-    },
+    APPROVED: null,
+    INITIATED: null,
     PAID: null,
   }[agent.status];
 
@@ -399,11 +403,7 @@ function SingleActionButton({ agent, onDone, API }) {
     await fetch(`${API}/api/incentive-results/${next.endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        next.endpoint.includes('/approve')
-          ? {}
-          : { programId: agent.program_id, periodStart: agent.period_start },
-      ),
+      body: JSON.stringify(next.body),
     });
     onDone();
   };
