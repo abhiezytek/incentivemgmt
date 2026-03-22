@@ -17,6 +17,7 @@ import incentiveRatesRouter from './src/routes/incentiveRates.js';
 import uploadRouter from './src/routes/upload.js';
 import incentiveResultsRouter from './src/routes/incentiveResults.js';
 import leaderboardRouter from './src/routes/leaderboard.js';
+import dashboardRouter from './src/routes/dashboard.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,6 +44,7 @@ app.use('/api/incentive-rates', incentiveRatesRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/incentive-results', incentiveResultsRouter);
 app.use('/api/leaderboard', leaderboardRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
