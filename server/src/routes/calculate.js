@@ -1,8 +1,75 @@
 import { Router } from 'express';
 import { query } from '../db/pool.js';
 import { calculateIncentive } from '../engine/calculateIncentive.js';
+import { calculateAgentIncentive } from '../engine/insuranceCalcEngine.js';
 
 const router = Router();
+
+/**
+ * POST /calculate/run
+ *
+ * Accepts { programId, periodStart, periodEnd }.
+ * Fetches all active agents in the program's channel, runs
+ * calculateAgentIncentive() for each agent sequentially, and returns
+ * summary counts and total incentive pool.
+ */
+router.post('/run', async (req, res) => {
+  try {
+    const { programId, periodStart, periodEnd } = req.body;
+    if (!programId || !periodStart || !periodEnd) {
+      return res.status(400).json({ error: 'programId, periodStart, and periodEnd are required' });
+    }
+
+    // Look up the program's channel
+    const [program] = await query(
+      `SELECT channel_id FROM incentive_programs WHERE id = $1`,
+      [programId]
+    );
+    if (!program) {
+      return res.status(404).json({ error: 'Program not found' });
+    }
+
+    // Fetch all active agents in that channel
+    const agents = await query(
+      `SELECT agent_code FROM ins_agents
+       WHERE channel_id = $1 AND status = 'ACTIVE'
+       ORDER BY hierarchy_level, agent_code`,
+      [program.channel_id]
+    );
+
+    let successCount = 0;
+    let errorCount = 0;
+    let totalIncentivePool = 0;
+    const errors = [];
+
+    // Run calculation sequentially to avoid DB overload
+    for (const agent of agents) {
+      try {
+        const result = await calculateAgentIncentive(
+          agent.agent_code, programId, periodStart, periodEnd
+        );
+        totalIncentivePool += result.totalIncentive || 0;
+        successCount++;
+      } catch (err) {
+        errorCount++;
+        errors.push({ agentCode: agent.agent_code, error: err.message });
+      }
+    }
+
+    res.json({
+      programId,
+      periodStart,
+      periodEnd,
+      totalAgents: agents.length,
+      successCount,
+      errorCount,
+      totalIncentivePool,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /**
  * GET /calculate/results?program_id=&period=YYYY-MM
