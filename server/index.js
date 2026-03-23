@@ -19,6 +19,7 @@ import persistencyDataRouter from './src/routes/persistencyData.js';
 import productsRouter from './src/routes/products.js';
 import incentiveRatesRouter from './src/routes/incentiveRates.js';
 import integrationRouter from './src/routes/integration.js';
+import systemTokenRouter from './src/routes/auth/systemToken.js';
 import { startSftpPollers } from './src/jobs/sftpPoller.js';
 import { startHierarchySync } from './src/jobs/hierarchySync.js';
 
@@ -49,6 +50,7 @@ app.use('/api/persistency-data',   persistencyDataRouter);
 app.use('/api/products',           productsRouter);
 app.use('/api/incentive-rates',    incentiveRatesRouter);
 app.use('/api/integration',        integrationRouter);
+app.use('/api/auth',               systemTokenRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
