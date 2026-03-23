@@ -1,0 +1,2112 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Insurance Incentive Management System",
+    "description": "Complete API collection for the Insurance Incentive Management System.\n\n**Setup:**\n1. Run \"Get System Token\" first to authenticate integration endpoints\n2. Collection variables are auto-populated by test scripts\n3. Use the suggested folder order for a clean test flow\n\nSee POSTMAN_GUIDE.md for detailed instructions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",       "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "user_token",     "value": "",                          "type": "string" },
+    { "key": "system_token",   "value": "",                          "type": "string" },
+    { "key": "program_id",     "value": "1",                         "type": "string" },
+    { "key": "period_start",   "value": "2026-01-01",                "type": "string" },
+    { "key": "period_end",     "value": "2026-01-31",                "type": "string" },
+    { "key": "agent_code",     "value": "AGT001",                    "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "description": "Obtain JWT tokens for user and system authentication.",
+      "item": [
+        {
+          "name": "Get System Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('system_token', json.token);",
+                  "    console.log('✅ system_token saved');",
+                  "}",
+                  "pm.test('Token returned', () => pm.expect(json.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"penta-integration\",\n  \"client_secret\": \"penta-secret-key-2025\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/system-token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "system-token"]
+            },
+            "description": "Authenticate as a system client and receive a JWT. The token is automatically saved to the `system_token` collection variable."
+          }
+        },
+        {
+          "name": "Login (User Auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('user_token', json.token);",
+                  "    console.log('✅ user_token saved');",
+                  "}",
+                  "pm.test('Token returned', () => pm.expect(json.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with user credentials. Token is automatically saved to the `user_token` collection variable.\n\n> **Note**: User auth is currently a pass-through placeholder. This endpoint is planned for future implementation."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('user_token', json.token);",
+                  "    console.log('✅ user_token refreshed');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{user_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh an expiring user token. Planned for future implementation."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Programs & Groups",
+      "description": "Manage incentive programs and user groups.",
+      "item": [
+        {
+          "name": "List All Programs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/programs",
+              "host": ["{{base_url}}"],
+              "path": ["programs"]
+            },
+            "description": "Retrieve all incentive programs."
+          }
+        },
+        {
+          "name": "Create Program",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('program_id', json.id);",
+                  "    console.log('✅ program_id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Q1 2026 Sales Incentive\",\n  \"description\": \"Quarterly incentive program for life insurance agents\",\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-03-31\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/programs",
+              "host": ["{{base_url}}"],
+              "path": ["programs"]
+            },
+            "description": "Create a new incentive program. The returned `id` is saved to `program_id`."
+          }
+        },
+        {
+          "name": "Get Program by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has id', () => pm.expect(pm.response.json().id).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/programs/{{program_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["programs", "{{program_id}}"]
+            },
+            "description": "Get details of a specific program."
+          }
+        },
+        {
+          "name": "Update Program",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Q1 2026 Sales Incentive (Updated)\",\n  \"description\": \"Updated quarterly incentive for life insurance agents\",\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-03-31\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/programs/{{program_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["programs", "{{program_id}}"]
+            },
+            "description": "Update an existing program."
+          }
+        },
+        {
+          "name": "Patch Program Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/programs/{{program_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["programs", "{{program_id}}", "status"]
+            },
+            "description": "Toggle the active/inactive status of a program."
+          }
+        },
+        {
+          "name": "Delete Program",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/programs/{{program_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["programs", "{{program_id}}"]
+            },
+            "description": "Delete a program. Use with caution — may fail if KPIs or payouts reference it."
+          }
+        },
+        {
+          "name": "List Groups",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups?programId={{program_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups"],
+              "query": [
+                { "key": "programId", "value": "{{program_id}}" }
+              ]
+            },
+            "description": "List user groups, optionally filtered by program."
+          }
+        },
+        {
+          "name": "Create Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"North Region Team Leads\",\n  \"program_id\": {{program_id}},\n  \"description\": \"Team leads in the northern region\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups",
+              "host": ["{{base_url}}"],
+              "path": ["groups"]
+            },
+            "description": "Create a new user group."
+          }
+        },
+        {
+          "name": "Add Members to Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_code\": \"{{agent_code}}\",\n  \"role\": \"MEMBER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/1/members",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "1", "members"]
+            },
+            "description": "Add a member to a group."
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/1/members",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "1", "members"]
+            },
+            "description": "List all members in a group."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - KPI Configuration",
+      "description": "Define KPI rules and milestone thresholds for incentive programs.",
+      "item": [
+        {
+          "name": "List KPIs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/kpis?programId={{program_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["kpis"],
+              "query": [
+                { "key": "programId", "value": "{{program_id}}" }
+              ]
+            },
+            "description": "List all KPI definitions, optionally filtered by program."
+          }
+        },
+        {
+          "name": "Create KPI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('kpi_id', json.id);",
+                  "    console.log('✅ kpi_id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"program_id\": {{program_id}},\n  \"name\": \"New Business Premium\",\n  \"metric_type\": \"NB_PREMIUM\",\n  \"target_value\": 500000,\n  \"weight\": 40\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kpis",
+              "host": ["{{base_url}}"],
+              "path": ["kpis"]
+            },
+            "description": "Create a new KPI definition for a program."
+          }
+        },
+        {
+          "name": "Update KPI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Business Premium (Updated)\",\n  \"metric_type\": \"NB_PREMIUM\",\n  \"target_value\": 750000,\n  \"weight\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kpis/1",
+              "host": ["{{base_url}}"],
+              "path": ["kpis", "1"]
+            },
+            "description": "Update an existing KPI definition."
+          }
+        },
+        {
+          "name": "Delete KPI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/kpis/1",
+              "host": ["{{base_url}}"],
+              "path": ["kpis", "1"]
+            },
+            "description": "Delete a KPI definition. Will fail if milestones exist."
+          }
+        },
+        {
+          "name": "Create KPI Milestone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Bronze\",\n  \"threshold_value\": 60,\n  \"payout_amount\": 5000,\n  \"sort_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kpis/1/milestones",
+              "host": ["{{base_url}}"],
+              "path": ["kpis", "1", "milestones"]
+            },
+            "description": "Add a milestone tier to a KPI (e.g. Bronze/Silver/Gold/Platinum)."
+          }
+        },
+        {
+          "name": "Update KPI Milestone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Silver\",\n  \"threshold_value\": 80,\n  \"payout_amount\": 10000,\n  \"sort_order\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kpis/milestones/1",
+              "host": ["{{base_url}}"],
+              "path": ["kpis", "milestones", "1"]
+            },
+            "description": "Update an existing milestone."
+          }
+        },
+        {
+          "name": "Delete KPI Milestone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/kpis/milestones/1",
+              "host": ["{{base_url}}"],
+              "path": ["kpis", "milestones", "1"]
+            },
+            "description": "Delete a milestone from a KPI."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Payout Rules",
+      "description": "Configure payout rules, commission slabs, and qualifying criteria.",
+      "item": [
+        {
+          "name": "List Payout Rules",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payouts?programId={{program_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payouts"],
+              "query": [
+                { "key": "programId", "value": "{{program_id}}" }
+              ]
+            },
+            "description": "List payout rules for a program."
+          }
+        },
+        {
+          "name": "Create Payout Rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('payout_rule_id', json.id);",
+                  "    console.log('✅ payout_rule_id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"First Year Commission\",\n  \"payout_type\": \"COMMISSION\",\n  \"calc_method\": \"MULTIPLY\",\n  \"base_field\": \"annualized_premium\",\n  \"program_id\": {{program_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payouts",
+              "host": ["{{base_url}}"],
+              "path": ["payouts"]
+            },
+            "description": "Create a new payout rule. `payout_type`: COMMISSION | BONUS | OVERRIDE. `calc_method`: FLAT | MULTIPLY | PERCENTAGE_OF."
+          }
+        },
+        {
+          "name": "Update Payout Rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"First Year Commission (Revised)\",\n  \"payout_type\": \"COMMISSION\",\n  \"calc_method\": \"MULTIPLY\",\n  \"base_field\": \"annualized_premium\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payouts/1",
+              "host": ["{{base_url}}"],
+              "path": ["payouts", "1"]
+            },
+            "description": "Update an existing payout rule."
+          }
+        },
+        {
+          "name": "Create Payout Slab",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"min_value\": 0,\n  \"max_value\": 100000,\n  \"rate\": 0.10,\n  \"sort_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payouts/1/slabs",
+              "host": ["{{base_url}}"],
+              "path": ["payouts", "1", "slabs"]
+            },
+            "description": "Add a tiered commission slab to a payout rule."
+          }
+        },
+        {
+          "name": "Update Payout Slab",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"min_value\": 0,\n  \"max_value\": 150000,\n  \"rate\": 0.12,\n  \"sort_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payouts/slabs/1",
+              "host": ["{{base_url}}"],
+              "path": ["payouts", "slabs", "1"]
+            },
+            "description": "Update an existing payout slab."
+          }
+        },
+        {
+          "name": "Delete Payout Slab",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payouts/slabs/1",
+              "host": ["{{base_url}}"],
+              "path": ["payouts", "slabs", "1"]
+            },
+            "description": "Delete a payout slab."
+          }
+        },
+        {
+          "name": "Create Qualifying Rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rule_type\": \"MIN_PERSISTENCY\",\n  \"operator\": \">=\",\n  \"threshold_value\": 80,\n  \"description\": \"Agent must have 80% or higher persistency\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payouts/1/qualifying-rules",
+              "host": ["{{base_url}}"],
+              "path": ["payouts", "1", "qualifying-rules"]
+            },
+            "description": "Add a qualifying gate to a payout rule (e.g. minimum persistency threshold)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Data Upload",
+      "description": "Bulk upload CSV files for policies, agents, persistency, products, and rates.",
+      "item": [
+        {
+          "name": "Upload Policy Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has inserted count', () => pm.expect(pm.response.json().inserted).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV with columns: policy_number, agent_code, product_code, transaction_type, premium_amount, annualized_premium, paid_date"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/policy-transactions",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "policy-transactions"]
+            },
+            "description": "Upload policy transaction data via CSV.\n\n**Required columns:** policy_number, agent_code, product_code, transaction_type, premium_amount, annualized_premium, paid_date\n\n**Optional columns:** channel_code, region_code, policy_year, sum_assured, payment_mode, issue_date, due_date, policy_status"
+          }
+        },
+        {
+          "name": "Upload Agents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has inserted count', () => pm.expect(pm.response.json().inserted).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV with columns: agent_code, agent_name, channel_code, region_code, hierarchy_level"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/agents",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "agents"]
+            },
+            "description": "Upload agent master data via CSV.\n\n**Required columns:** agent_code, agent_name, channel_code, region_code, hierarchy_level"
+          }
+        },
+        {
+          "name": "Upload Persistency",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV with columns: agent_code, persistency_month, period_start, period_end, policies_due, policies_renewed"
+                },
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/persistency",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "persistency"]
+            },
+            "description": "Upload persistency data via CSV.\n\n**Required columns:** agent_code, persistency_month, period_start, period_end, policies_due, policies_renewed"
+          }
+        },
+        {
+          "name": "Upload Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV with product master data"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/products",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "products"]
+            },
+            "description": "Upload product master data via CSV."
+          }
+        },
+        {
+          "name": "Upload Incentive Rates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV with incentive rate schedule"
+                },
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/incentive-rates",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "incentive-rates"]
+            },
+            "description": "Upload incentive rate schedules via CSV."
+          }
+        },
+        {
+          "name": "Upload MLM Override Rates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "CSV with MLM hierarchy override rate schedule"
+                },
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload/mlm-override-rates",
+              "host": ["{{base_url}}"],
+              "path": ["upload", "mlm-override-rates"]
+            },
+            "description": "Upload MLM/hierarchy override rate schedules via CSV."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Calculations",
+      "description": "Run incentive calculations and check job status.",
+      "item": [
+        {
+          "name": "Run Calculation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test('Has success count', () => pm.expect(json.successCount).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"programId\": {{program_id}},\n  \"periodStart\": \"{{period_start}}\",\n  \"periodEnd\": \"{{period_end}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/calculate/run",
+              "host": ["{{base_url}}"],
+              "path": ["calculate", "run"]
+            },
+            "description": "Run bulk incentive calculation for all active agents in a program period."
+          }
+        },
+        {
+          "name": "Get Calculation Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/calculate/status/1",
+              "host": ["{{base_url}}"],
+              "path": ["calculate", "status", "1"]
+            },
+            "description": "Check the status of a calculation job."
+          }
+        },
+        {
+          "name": "Recompute Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 201', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodStart\": \"{{period_start}}\",\n  \"periodEnd\": \"{{period_end}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/calculate/recompute/{{agent_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["calculate", "recompute", "{{agent_code}}"]
+            },
+            "description": "Recompute incentive for a single agent."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Incentive Results & Approval",
+      "description": "View, approve, and manage incentive result payouts.",
+      "item": [
+        {
+          "name": "List Incentive Results",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/incentive-results?programId={{program_id}}&periodStart={{period_start}}",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results"],
+              "query": [
+                { "key": "programId",   "value": "{{program_id}}" },
+                { "key": "periodStart", "value": "{{period_start}}" }
+              ]
+            },
+            "description": "List incentive results with optional filters: programId, periodStart, channel, region, status."
+          }
+        },
+        {
+          "name": "Get Result by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/incentive-results/1",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "1"]
+            },
+            "description": "Get detailed incentive result for a single record."
+          }
+        },
+        {
+          "name": "Approve Single Result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvedBy\": \"manager.singh\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incentive-results/1/approve",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "1", "approve"]
+            },
+            "description": "Approve a single incentive result (DRAFT → APPROVED)."
+          }
+        },
+        {
+          "name": "Bulk Approve Results",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has approved count', () => pm.expect(pm.response.json().approved).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"programId\": {{program_id}},\n  \"periodStart\": \"{{period_start}}\",\n  \"approvedBy\": \"finance.head\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incentive-results/bulk-approve",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "bulk-approve"]
+            },
+            "description": "Bulk approve all DRAFT results for a program/period. Only results passing the persistency gate are approved."
+          }
+        },
+        {
+          "name": "Initiate Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has count', () => pm.expect(pm.response.json().count).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [1, 2, 3],\n  \"paymentReference\": \"NEFT-2026-Q1-BATCH-001\",\n  \"paidBy\": \"finance.kumar\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incentive-results/initiate-payment",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "initiate-payment"]
+            },
+            "description": "Move APPROVED results to INITIATED and log the payment reference."
+          }
+        },
+        {
+          "name": "Mark as Paid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has paid count', () => pm.expect(pm.response.json().paid).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [1, 2, 3],\n  \"paidBy\": \"finance.kumar\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incentive-results/mark-paid",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "mark-paid"]
+            },
+            "description": "Mark INITIATED results as PAID."
+          }
+        },
+        {
+          "name": "Get Results Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/incentive-results/summary?programId={{program_id}}&periodStart={{period_start}}",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "summary"],
+              "query": [
+                { "key": "programId",   "value": "{{program_id}}" },
+                { "key": "periodStart", "value": "{{period_start}}" }
+              ]
+            },
+            "description": "Get channel-level summary of incentive results."
+          }
+        },
+        {
+          "name": "Get Stage Summary (Pipeline)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/incentive-results/stage-summary?programId={{program_id}}&periodStart={{period_start}}",
+              "host": ["{{base_url}}"],
+              "path": ["incentive-results", "stage-summary"],
+              "query": [
+                { "key": "programId",   "value": "{{program_id}}" },
+                { "key": "periodStart", "value": "{{period_start}}" }
+              ]
+            },
+            "description": "Get pipeline stage counts (DRAFT / APPROVED / INITIATED / PAID) with totals."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Leaderboard & Dashboard",
+      "description": "Analytics, leaderboard rankings, and executive dashboard.",
+      "item": [
+        {
+          "name": "Get Leaderboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has agents', () => pm.expect(pm.response.json().agents).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/leaderboard?programId={{program_id}}&period={{period_start}}",
+              "host": ["{{base_url}}"],
+              "path": ["leaderboard"],
+              "query": [
+                { "key": "programId", "value": "{{program_id}}" },
+                { "key": "period",    "value": "{{period_start}}" }
+              ]
+            },
+            "description": "Get ranked agent leaderboard. Optional filters: channel, region."
+          }
+        },
+        {
+          "name": "Get Dashboard Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has kpi section', () => pm.expect(pm.response.json().kpi).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/summary?programId={{program_id}}&period={{period_start}}",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "summary"],
+              "query": [
+                { "key": "programId", "value": "{{program_id}}" },
+                { "key": "period",    "value": "{{period_start}}" }
+              ]
+            },
+            "description": "Executive dashboard with KPI cards, channel breakdown, product mix, top agents, pipeline status, and recent activity."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Integration Inbound",
+      "description": "Inbound API endpoints for Penta system integration (system-to-system auth).",
+      "item": [
+        {
+          "name": "Penta: Push Single Policy Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policy_number\": \"POL-2026-001234\",\n  \"agent_code\": \"AGT001\",\n  \"product_code\": \"LIFE-ENDOW-20\",\n  \"premium_amount\": 25000.00,\n  \"transaction_type\": \"NEW_BUSINESS\",\n  \"issue_date\": \"2026-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/integration/penta/policy-transaction",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "penta", "policy-transaction"]
+            },
+            "description": "Push a single policy transaction from Penta. Requires system token."
+          }
+        },
+        {
+          "name": "Penta: Push Policy Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('Has batch_id', () => pm.expect(pm.response.json().batch_id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"policy_number\": \"POL-2026-001234\",\n      \"agent_code\": \"AGT001\",\n      \"product_code\": \"LIFE-ENDOW-20\",\n      \"premium_amount\": 25000.00,\n      \"transaction_type\": \"NEW_BUSINESS\",\n      \"issue_date\": \"2026-01-15\"\n    },\n    {\n      \"policy_number\": \"POL-2026-001235\",\n      \"agent_code\": \"AGT002\",\n      \"product_code\": \"HEALTH-FAM-10\",\n      \"premium_amount\": 18500.00,\n      \"transaction_type\": \"NEW_BUSINESS\",\n      \"issue_date\": \"2026-01-16\"\n    },\n    {\n      \"policy_number\": \"POL-2025-009876\",\n      \"agent_code\": \"AGT001\",\n      \"product_code\": \"LIFE-TERM-30\",\n      \"premium_amount\": 12000.00,\n      \"transaction_type\": \"RENEWAL\",\n      \"issue_date\": \"2026-01-20\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/integration/penta/policy-batch",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "penta", "policy-batch"]
+            },
+            "description": "Push a batch of policy transactions from Penta. Staged in `stg_policy_transactions` for validation."
+          }
+        },
+        {
+          "name": "Penta: Agent Status Change",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_code\": \"AGT001\",\n  \"new_status\": \"ACTIVE\",\n  \"effective_date\": \"2026-01-15\",\n  \"reason\": \"Annual license renewal completed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/integration/penta/agent-status-change",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "penta", "agent-status-change"]
+            },
+            "description": "Notify the system of an agent status change from Penta."
+          }
+        },
+        {
+          "name": "Penta: Sync Status (Heartbeat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status OK', () => pm.expect(pm.response.json().status).to.eql('OK'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/penta/sync-status",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "penta", "sync-status"]
+            },
+            "description": "Check Penta integration heartbeat and last sync timestamp."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Integration Outbound",
+      "description": "Export incentive data to SAP FICO and Oracle Financials.",
+      "item": [
+        {
+          "name": "Export to SAP FICO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"programId\": {{program_id}},\n  \"periodStart\": \"{{period_start}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/integration/export/sap-fico",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "export", "sap-fico"]
+            },
+            "description": "Generate SAP FICO export file for approved incentive results."
+          }
+        },
+        {
+          "name": "Export to Oracle Financials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"programId\": {{program_id}},\n  \"periodStart\": \"{{period_start}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/integration/export/oracle-financials",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "export", "oracle-financials"]
+            },
+            "description": "Generate Oracle AP CSV export for approved incentive results. Response is a CSV file download."
+          }
+        },
+        {
+          "name": "Get Export History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/export/history",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "export", "history"]
+            },
+            "description": "View history of generated export files from `outbound_file_log`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Integration Monitoring",
+      "description": "Monitor integration health, view logs, and trigger manual jobs.",
+      "item": [
+        {
+          "name": "Get Integration Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/status",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "status"]
+            },
+            "description": "Dashboard status showing health of all integration channels (Life Asia SFTP, Penta API, Hierarchy API, Outbound exports)."
+          }
+        },
+        {
+          "name": "Get File Processing Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/file-log?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "file-log"],
+              "query": [
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "View file processing log entries (SFTP imports, uploads)."
+          }
+        },
+        {
+          "name": "Get Audit Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/audit-log?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "audit-log"],
+              "query": [
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "View API call audit log entries."
+          }
+        },
+        {
+          "name": "Get Failed Records",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/failed-records?table=stg_policy_transactions&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "failed-records"],
+              "query": [
+                { "key": "table", "value": "stg_policy_transactions" },
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "View staging records in INVALID or ERROR status. Filterable by table: stg_policy_transactions, stg_agent_master."
+          }
+        },
+        {
+          "name": "Trigger SFTP Poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/trigger/sftp-poll",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "trigger", "sftp-poll"]
+            },
+            "description": "Manually trigger SFTP poll for Life Asia file imports. Runs asynchronously."
+          }
+        },
+        {
+          "name": "Trigger Hierarchy Sync",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/trigger/hierarchy-sync",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "trigger", "hierarchy-sync"]
+            },
+            "description": "Manually trigger agent hierarchy sync from master data API."
+          }
+        },
+        {
+          "name": "Trigger Reprocess Failed Records",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/integration/trigger/reprocess",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "trigger", "reprocess"]
+            },
+            "description": "Reset all INVALID/ERROR staging records to PENDING for reprocessing."
+          }
+        }
+      ]
+    }
+  ]
+}
