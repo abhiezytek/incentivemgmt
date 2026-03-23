@@ -366,4 +366,167 @@ The calculation engine processes agents **sequentially** (one at a time) to avoi
 | 21 | Mark as paid | PayoutDisbursement | `POST /api/incentive-results/mark-paid` | `ins_incentive_results`, `payout_disbursement_log` | Status set to `PAID`; disbursement audit record created with payment reference |
 | 22 | Dashboard refresh | Dashboard, Leaderboard | `GET /api/dashboard`, `GET /api/leaderboard` | _(read from paid results)_ | Leaderboard rankings and dashboard KPI cards reflect final paid amounts |
 
-<!-- Sections 4-10 will be appended next -->
+---
+
+## Section 4 — Calculation Engine Deep Dive
+
+### 4.1 Entry Point
+
+**File:** `server/src/engine/insuranceCalcEngine.js`
+
+**Main function:**
+
+```
+calculateAgentIncentive(agentCode, programId, periodStart, periodEnd)
+```
+
+Called inside a sequential `for...of` loop from the `/api/calculate/run` route handler. Each agent is processed one at a time (see §4.6 for rationale).
+
+---
+
+### 4.2 Engine Decision Tree
+
+```
+                        ┌──────────────┐
+                        │  Start Agent │
+                        └──────┬───────┘
+                               │
+                        ┌──────▼───────┐
+                        │ Agent active?│
+                        └──┬───────┬───┘
+                     NO    │       │  YES
+                  ┌────────▼──┐  ┌─▼──────────────────────┐
+                  │ Skip agent│  │ compute_agent_kpi()     │
+                  │ + log     │  │ → ins_agent_kpi_summary │
+                  └───────────┘  └─────────┬───────────────┘
+                                           │
+                                  ┌────────▼────────────┐
+                                  │ Match achievement %  │
+                                  │ to kpi_milestones    │
+                                  │ → M-1 / M-2 / M-3   │
+                                  └────────┬────────────┘
+                                           │
+                                  ┌────────▼────────────┐
+                                  │ Apply payout_slabs   │
+                                  │ + incentive_operator │
+                                  └────────┬────────────┘
+                                           │
+                                  ┌────────▼────────────┐
+                                  │ Apply incentive rates│
+                                  │ per product/channel/ │
+                                  │ policy_year          │
+                                  └────────┬────────────┘
+                                           │
+                                  ┌────────▼────────────┐
+                                  │ Check persistency    │
+                                  │ gates                │
+                                  └──┬─────┬─────┬──────┘
+                                     │     │     │
+                          ┌──────────▼┐ ┌──▼───┐ ┌▼──────────┐
+                          │  BLOCK    │ │REDUCE│ │ CLAWBACK  │
+                          │  set = 0  │ │ by % │ │ add amt   │
+                          └──────┬────┘ └──┬───┘ └┬──────────┘
+                                 │         │      │
+                                 └────┬────┘──────┘
+                                      │
+                             ┌────────▼────────────┐
+                             │ Calculate MLM       │
+                             │ overrides (L1/L2/L3)│
+                             └────────┬────────────┘
+                                      │
+                             ┌────────▼────────────┐
+                             │ Build calc_breakdown │
+                             │ JSONB                │
+                             └────────┬────────────┘
+                                      │
+                             ┌────────▼────────────┐
+                             │ Save to              │
+                             │ ins_incentive_results│
+                             │ status = DRAFT       │
+                             └─────────────────────┘
+```
+
+---
+
+### 4.3 Incentive Operator Types and Formulas
+
+The `incentive_operator` column in `payout_slabs` determines how the base incentive is computed:
+
+| Operator | Formula | Example |
+|----------|---------|---------|
+| `MULTIPLY` | `incentive = parameter_value × rate` | Agent FYP ₹500,000 × rate 0.05 = ₹25,000 |
+| `FLAT` | `incentive = fixed amount` | Flat ₹10,000 regardless of production |
+| `PERCENTAGE_OF` | `incentive = (parameter_value × rate) / 100` | FYP ₹500,000 × 5 / 100 = ₹25,000 |
+
+---
+
+### 4.4 Persistency Consequence Types
+
+The `ins_persistency_gates` table defines consequences applied when an agent fails persistency checks:
+
+| Consequence Type | Effect | Formula |
+|-----------------|--------|---------|
+| `BLOCK_INCENTIVE` | Zero out incentive entirely | `nb_incentive = 0`, `renewal_incentive = 0` |
+| `REDUCE_BY_PCT` | Reduce incentive by a percentage | `nb_incentive = nb_incentive × (1 − value / 100)` |
+| `CLAWBACK_PCT` | Claw back a portion of incentive | `clawback_amount += nb_incentive × value / 100` |
+
+**Final incentive formulas:**
+
+```
+net_self_incentive = nb_incentive + renewal_incentive
+                   + product_bonus − clawback_amount
+
+total_incentive    = net_self_incentive + l1_override
+                   + l2_override + l3_override
+```
+
+---
+
+### 4.5 Code vs Data Changes
+
+A key design principle: most business-rule changes require **only data updates** — no code deployment needed.
+
+| Change | Code Change Needed? | Where to Update |
+|--------|:-------------------:|-----------------|
+| Change incentive rate % | ❌ No | Update `ins_incentive_rates` |
+| Add new product | ❌ No | Insert into `ins_products` + `ins_incentive_rates` |
+| Change gate threshold | ❌ No | Update `ins_persistency_gates` |
+| Change MLM override % | ❌ No | Update `ins_mlm_override_rates` |
+| Add new KPI | ❌ No | Insert into `kpi_definitions` + `kpi_milestones` |
+| Add new `incentive_operator` | ✅ Yes | Edit `insuranceCalcEngine.js` (add operator branch) |
+| Add new consequence type | ✅ Yes | Edit `insuranceCalcEngine.js` (add consequence handler) |
+| Change CSV column names | ✅ Yes | Edit `upload.js` (update column mappings) |
+| Add new integration source | ✅ Yes | New route file + new job file |
+
+---
+
+### 4.6 Why `for...of` and NOT `Promise.all` in Calculation
+
+The calculation engine processes agents **sequentially** using a `for...of` loop rather than in parallel with `Promise.all`. Here is why:
+
+```
+❌  Promise.all  (parallel)
+    ┌─────────────────────────────────────────────────┐
+    │  Agent-1 ──▶ DB query                           │
+    │  Agent-2 ──▶ DB query     ← all hit pool at     │
+    │  Agent-3 ──▶ DB query       the same time       │
+    │  ...                                            │
+    │  Agent-N ──▶ DB query     ← pool exhausted!     │
+    │                                                 │
+    │  Result: pool timeout errors at scale           │
+    └─────────────────────────────────────────────────┘
+
+✅  for...of  (sequential)
+    ┌─────────────────────────────────────────────────┐
+    │  Agent-1 ──▶ DB query ──▶ done                  │
+    │                  Agent-2 ──▶ DB query ──▶ done   │
+    │                                Agent-3 ──▶ ...   │
+    │                                                 │
+    │  Result: predictable DB load, safe for 1000+    │
+    │  agents, no connection pool exhaustion           │
+    └─────────────────────────────────────────────────┘
+```
+
+Each agent's calculation involves **multiple database round-trips** (KPI aggregation, milestone lookup, slab matching, rate lookup, persistency check, MLM override query, result insert). Running all agents in parallel would multiply the concurrent connection demand by the number of agents, quickly exhausting PostgreSQL's connection pool and causing timeout failures.
+
+<!-- Sections 5-10 will be appended next -->
