@@ -24,7 +24,7 @@ function App() {
         <Route path="incentive/leaderboard" element={<Leaderboard />} />
         <Route path="payout/disbursement" element={<PayoutDisbursement />} />
         <Route path="team/performance" element={<TeamPerformance />} />
-        <Route path="admin/integration" element={<IntegrationDashboard />} />
+        <Route path="integration/dashboard" element={<IntegrationDashboard />} />
       </Route>
     </Routes>
   )

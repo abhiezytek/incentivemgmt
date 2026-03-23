@@ -18,9 +18,14 @@ import agentsRouter from './src/routes/agents.js';
 import persistencyDataRouter from './src/routes/persistencyData.js';
 import productsRouter from './src/routes/products.js';
 import incentiveRatesRouter from './src/routes/incentiveRates.js';
-import integrationRouter from './src/routes/integration.js';
-import systemTokenRouter from './src/routes/auth/systemToken.js';
-import maskResponse from './src/middleware/maskResponse.js';
+import pentaRouter        from './src/routes/integration/penta.js';
+import lifeAsiaRouter     from './src/routes/integration/lifeasia.js';
+import exportRouter       from './src/routes/integration/export.js';
+import integrationStatus  from './src/routes/integration/status.js';
+import systemTokenRouter  from './src/routes/auth/systemToken.js';
+import systemAuth         from './src/middleware/systemAuth.js';
+import userAuth           from './src/middleware/userAuth.js';
+import maskResponse       from './src/middleware/maskResponse.js';
 import { startSftpPollers } from './src/jobs/sftpPoller.js';
 import { startHierarchySync } from './src/jobs/hierarchySync.js';
 
@@ -51,8 +56,11 @@ app.use('/api/agents',             agentsRouter);
 app.use('/api/persistency-data',   persistencyDataRouter);
 app.use('/api/products',           productsRouter);
 app.use('/api/incentive-rates',    incentiveRatesRouter);
-app.use('/api/integration',        integrationRouter);
-app.use('/api/auth',               systemTokenRouter);
+app.use('/api/auth',                         systemTokenRouter);
+app.use('/api/integration/penta',  systemAuth, pentaRouter);
+app.use('/api/integration/lifeasia', systemAuth, lifeAsiaRouter);
+app.use('/api/integration/export', userAuth,   exportRouter);
+app.use('/api/integration',        userAuth,   integrationStatus);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { to: '/incentive/leaderboard', label: 'Leaderboard' },
   { to: '/payout/disbursement', label: 'Payout' },
   { to: '/team/performance', label: 'Team Performance' },
-  { to: '/admin/integration', label: 'Integration' },
+  { to: '/integration/dashboard', label: 'Integration Monitor' },
 ]
 
 export default function AppShell() {
