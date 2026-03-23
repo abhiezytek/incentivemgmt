@@ -269,4 +269,101 @@ Policies that are newly issued within the incentive period. NB count and NB prem
   └─────────────────┘  └─────────────────────┘
 ```
 
-<!-- Sections 3-10 will be appended next -->
+---
+
+## Section 3 — Complete Application Process Flow
+
+This section documents the full end-to-end lifecycle across **22 steps** grouped into **5 phases**. Each step shows the user-facing screen (if any), the API endpoint called, the database table affected, and the result.
+
+---
+
+### Phase 1 — Program Setup (Steps 1–9)
+
+| Step | Action | Screen | API Endpoint | Table(s) Affected | Result |
+|------|--------|--------|--------------|--------------------|--------|
+| 1 | Create program | CreatePlan → Step1_PlanDetails | `POST /api/programs` | `incentive_programs` | New program record created with status `DRAFT` |
+| 2 | Define KPIs | CreatePlan → Step4_KPIRules | `POST /api/kpis` | `kpi_definitions` | KPI rules linked to the program (e.g., FYP target, NB count) |
+| 3 | Set milestones | CreatePlan → Step4_KPIRules | `POST /api/kpis/:id/milestones` | `kpi_milestones` | Achievement tiers created (M-1, M-2, M-3) with threshold percentages |
+| 4 | Create payout rules | CreatePlan → Step5_PayoutRules | `POST /api/payouts` | `payout_rules` | Payout rule record linking a KPI to a payment method and operator |
+| 5 | Define payout slabs | CreatePlan → Step5_PayoutRules | `POST /api/payouts/:id/slabs` | `payout_slabs` | Range-based rate table (e.g., 80–100% → 5%, 100–120% → 8%) |
+| 6 | Set gate rules | CreatePlan → Step5_PayoutRules | `POST /api/payouts/:id/qualifying-rules` | `payout_qualifying_rules` | Persistency gate and other qualifying conditions attached to payout |
+| 7 | Upload incentive rates | DataManagement → UploadIncentiveRates | `POST /api/upload/incentive-rates` | `ins_incentive_rates` | Product × channel × policy-year rate matrix loaded from CSV |
+| 8 | Upload MLM rates | DataManagement → UploadCenter | `POST /api/upload/mlm-override-rates` | `ins_mlm_override_rates` | Hierarchy-level override percentages loaded from CSV |
+| 9 | Activate program | AdminPlanListing | `PATCH /api/programs/:id/status` | `incentive_programs` | Program status set to `ACTIVE`; now eligible for calculation runs |
+
+---
+
+### Phase 2 — Data Loading (Steps 10–13)
+
+| Step | Action | Screen | API Endpoint / Job | Table(s) Affected | Result |
+|------|--------|--------|--------------------|--------------------|--------|
+| 10 | Agent hierarchy sync | _(automated)_ | `hierarchySync.js` — cron daily 21:00 UTC (2:30 AM IST) | `ins_agents` | Agent master with parent links and `hierarchy_path` upserted from external Hierarchy System via REST |
+| 11 | Policy transactions | _(automated)_ | **Life Asia:** `sftpPoller.js` — cron daily 20:30 UTC (2:00 AM IST) **Penta:** `POST /api/integration/penta/policy-transaction` (real-time webhook) | `stg_policy_transactions` → `ins_policy_transactions` | Raw files land in staging; validated rows promoted to production table |
+| 12 | Manual CSV fallback | DataManagement → UploadPolicyTransactions | `POST /api/upload/policy-transactions` | `ins_policy_transactions` | Operations can manually upload policy CSV when SFTP/API is unavailable |
+| 13 | Persistency upload | DataManagement → UploadPersistencyData | `POST /api/upload/persistency` | `ins_persistency_data` | Persistency ratios loaded per agent per policy year for gate checks |
+
+---
+
+### Phase 3 — Calculation (Steps 14–16)
+
+| Step | Action | Screen | API Endpoint | Table(s) Affected | Result |
+|------|--------|--------|--------------|--------------------|--------|
+| 14 | Trigger calculation | IncentiveBreakdown | `POST /api/calculate/run` `{ programId, periodStart, periodEnd }` | _(triggers engine)_ | Calculation run initiated for the specified program and period |
+| 15 | Engine processes each agent | _(server-side)_ | `insuranceCalcEngine.js` (sequential `for...of` loop — **not** `Promise.all`) | `ins_agent_kpi_summary`, `ins_incentive_results` | See detailed sub-steps below |
+| 16 | Review results | IncentiveBreakdown | `GET /api/incentive-results` | `ins_incentive_results` _(read)_ | Paginated list of calculated incentives with breakdown detail |
+
+#### Step 15 — Engine Sub-Steps (per agent)
+
+The calculation engine processes agents **sequentially** (one at a time) to avoid database contention. For each agent the following sub-steps execute:
+
+```
+15a.  compute_agent_kpi()          SQL function → ins_agent_kpi_summary
+      Aggregates policy transactions into KPI actuals for the agent & period.
+
+15b.  Fetch kpi_definitions        Load the program's KPI rules (target, weight, operator).
+
+15c.  Match achievement %          Compare actual vs target → achievement percentage.
+      to kpi_milestones            Map to milestone label (M-1 / M-2 / M-3) based on thresholds.
+
+15d.  Find payout_slabs            Locate the slab whose range contains the milestone.
+      for milestone                Apply the incentive_operator (FLAT / PERCENTAGE / MULTIPLY).
+
+15e.  Apply ins_incentive_rates    Look up rate by product × channel × policy_year.
+      per product per channel      Multiply base payout by the applicable rate.
+
+15f.  Check ins_persistency_gates  Evaluate persistency gate rules:
+                                   ┌─ BLOCK_INCENTIVE  → set incentive = 0
+                                   ├─ REDUCE_BY_PCT    → incentive × (1 − reduction%)
+                                   └─ CLAWBACK_PCT     → add amount to clawback_amount
+
+15g.  Calculate MLM overrides      Walk downline agents using hierarchy_path LIKE 'path.%'.
+                                   Apply override % from ins_mlm_override_rates per level.
+
+15h.  Build calc_breakdown         Assemble a JSONB object capturing every intermediate
+                                   value for audit transparency.
+
+15i.  Save to ins_incentive_results
+      INSERT with status = DRAFT, calc_breakdown JSONB, clawback_amount (if any).
+```
+
+---
+
+### Phase 4 — Approval (Step 17)
+
+| Step | Action | Screen | API Endpoint | Table(s) Affected | Result |
+|------|--------|--------|--------------|--------------------|--------|
+| 17 | Bulk approve | IncentiveBreakdown | `POST /api/incentive-results/bulk-approve` | `ins_incentive_results` | Only records with `status = DRAFT` **and** `persistency_gate_passed = TRUE` are approved. Updates `status = APPROVED`, sets `approved_by` and `approved_at` timestamps. |
+
+---
+
+### Phase 5 — Payout (Steps 18–22)
+
+| Step | Action | Screen | API Endpoint | Table(s) Affected | Result |
+|------|--------|--------|--------------|--------------------|--------|
+| 18 | Finance review | PayoutDisbursement | `GET /api/incentive-results?status=APPROVED` | `ins_incentive_results` _(read)_ | Finance team reviews all approved incentive records before payment |
+| 19 | Initiate payment | PayoutDisbursement | `POST /api/incentive-results/initiate-payment` | `ins_incentive_results` | Status updated to `INITIATED`; records locked for file generation |
+| 20 | Generate payment file | PayoutDisbursement | `POST /api/integration/export/sap-fico` **or** `POST /api/integration/export/oracle-financials` | `outbound_file_log` | CSV payment file generated and downloaded; file metadata logged |
+| 21 | Mark as paid | PayoutDisbursement | `POST /api/incentive-results/mark-paid` | `ins_incentive_results`, `payout_disbursement_log` | Status set to `PAID`; disbursement audit record created with payment reference |
+| 22 | Dashboard refresh | Dashboard, Leaderboard | `GET /api/dashboard`, `GET /api/leaderboard` | _(read from paid results)_ | Leaderboard rankings and dashboard KPI cards reflect final paid amounts |
+
+<!-- Sections 4-10 will be appended next -->
