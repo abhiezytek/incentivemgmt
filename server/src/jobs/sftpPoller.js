@@ -98,7 +98,7 @@ async function connectSftp() {
     } catch (err) {
       console.error(`[SFTP] Connection attempt ${attempt}/${MAX_RETRIES} failed:`, err.message);
       if (attempt === MAX_RETRIES) throw err;
-      const delay = Math.pow(4, attempt - 1) * 1000; // 1s, 4s, 16s
+      const delay = Math.pow(4, attempt - 1) * 1000; // 1s, 4s
       await new Promise((r) => setTimeout(r, delay));
     }
   }
@@ -267,7 +267,7 @@ async function processPolicyTransactions() {
             channelId,
             regionId,
             TXN_TYPE_MAP[txnCode] || r.TXN_TYPE || null,
-            r.POL_YR ? parseInt(r.POL_YR, 10) : 1,
+            r.POL_YR != null && r.POL_YR !== '' ? parseInt(r.POL_YR, 10) : 1,
             r.PREM_AMT ? parseFloat(r.PREM_AMT) : null,
             r.SA_AMT ? parseFloat(r.SA_AMT) : null,
             r.APE ? parseFloat(r.APE) : null,
@@ -470,7 +470,7 @@ async function processAgentMaster() {
             convertAS400Date(r.LICENSE_EXPIRY),
             convertAS400Date(r.ACTIVATION_DT),
             r.PARENT_AGENT_CD || null,
-            r.HIERARCHY_LEVEL ? parseInt(r.HIERARCHY_LEVEL, 10) : 1,
+            r.HIERARCHY_LEVEL != null && r.HIERARCHY_LEVEL !== '' ? parseInt(r.HIERARCHY_LEVEL, 10) : 1,
             r.STATUS || 'ACTIVE',
             batchId,
             idx + 1,

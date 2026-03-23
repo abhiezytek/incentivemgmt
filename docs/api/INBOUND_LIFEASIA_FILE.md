@@ -372,9 +372,9 @@ All times are in **IST (Indian Standard Time, UTC+05:30)**.
 
 | Job                        | Cron Expression       | IST Time   | UTC Time    | File Pattern                            |
 |----------------------------|-----------------------|------------|-------------|-----------------------------------------|
-| Policy Transactions        | `30 20 * * *` (UTC)   | 2:00 AM    | 8:30 PM (prev day) | `LIFEASIA_POLICY_TXN_YYYYMMDD.csv`    |
-| Agent Master Sync          | `0 21 * * *` (UTC)    | 2:30 AM    | 9:00 PM (prev day) | `LIFEASIA_AGENT_YYYYMMDD.csv`          |
-| Persistency Data Check     | `30 21 * * *` (UTC)   | 3:00 AM    | 9:30 PM (prev day) | `LIFEASIA_PERSIST_YYYYMM.csv`          |
+| Policy Transactions        | `30 20 * * *` (UTC)   | 2:00 AM    | 20:30 (prev day)   | `LIFEASIA_POLICY_TXN_YYYYMMDD.csv`    |
+| Agent Master Sync          | `0 21 * * *` (UTC)    | 2:30 AM    | 21:00 (prev day)   | `LIFEASIA_AGENT_YYYYMMDD.csv`          |
+| Persistency Data Check     | `30 21 * * *` (UTC)   | 3:00 AM    | 21:30 (prev day)   | `LIFEASIA_PERSIST_YYYYMM.csv`          |
 
 > **Note:** `node-cron` runs in the server's timezone. The cron expressions above assume the server runs in UTC. Adjust if the server uses IST.
 
