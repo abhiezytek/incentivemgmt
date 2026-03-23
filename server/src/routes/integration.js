@@ -145,7 +145,7 @@ router.post('/export/oracle-financials', async (req, res) => {
     const csvContent = [header, ...csvRows].join('\r\n') + '\r\n';
 
     // --- File metadata ---
-    const ts = now.toISOString().replace(/[-:T]/g, '').slice(0, 15);  // YYYYMMDD_HHMMSS approx
+    const ts = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);  // YYYYMMDDHHMMSS
     const datePart = ts.slice(0, 8);
     const timePart = ts.slice(8, 14);
     const fileName = `ORACLE_AP_INCENTIVE_${datePart}_${timePart}.csv`;
