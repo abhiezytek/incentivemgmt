@@ -149,21 +149,40 @@ data dependencies are satisfied:
 
 ## Environment Setup
 
-### Using Postman Environments (Optional)
+### Pre-built Environment Files
 
-Instead of modifying collection variables, you can create **Postman Environments**:
+Three ready-to-import environment files are available in `docs/api/environments/`:
 
-1. Click the ⚙️ gear icon → **Add Environment**.
-2. Name it `Incentive - Local` (or `Incentive - Staging`, etc.).
-3. Add these variables:
+| File | Environment | Base URL |
+|------|-------------|----------|
+| `incentive_local.postman_environment.json` | LOCAL | `http://localhost:5000/api` |
+| `incentive_uat.postman_environment.json` | UAT | `https://uat-api.incentive.yourdomain.com/api` |
+| `incentive_prod.postman_environment.json` | PRODUCTION | `https://api.incentive.yourdomain.com/api` |
 
-| Variable | Initial Value | Current Value |
-|----------|---------------|---------------|
-| `base_url` | `http://localhost:5000/api` | `http://localhost:5000/api` |
-| `program_id` | `1` | `1` |
-| `period_start` | `2026-01-01` | `2026-01-01` |
-| `period_end` | `2026-01-31` | `2026-01-31` |
-| `agent_code` | `AGT001` | `AGT001` |
+**To import:**
+1. In Postman, click the ⚙️ gear icon (top-right) → **Import**.
+2. Select the environment JSON file.
+3. Select the environment from the dropdown (top-right).
+
+> ⚠️ **PRODUCTION WARNING:** The PROD environment is for read-only verification only.
+> Do **NOT** run DELETE requests, bulk-approve, or any destructive operations in production.
+
+### Environment Variables
+
+Each environment file includes these variables:
+
+| Variable | Purpose | Filled by |
+|----------|---------|-----------|
+| `base_url` | API base URL | Pre-set per environment |
+| `user_token` | User JWT | Auto-saved after login |
+| `system_token` | System JWT | Auto-saved after system-token call |
+| `program_id` | Target program | Manual or auto-saved |
+| `period_start` | Period start date | Manual |
+| `period_end` | Period end date | Manual |
+| `agent_code` | Sample agent code | Manual |
+| `client_id` | API client ID for system auth | Manual |
+| `client_secret` | API client secret | Manual (secret type) |
+| `env_name` | Environment label | Pre-set |
 
 > Environment variables override collection variables with the same name.
 
