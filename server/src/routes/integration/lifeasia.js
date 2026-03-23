@@ -14,10 +14,58 @@ const router = Router();
 // ─────────────────────────────────────────────
 
 /**
- * POST /notify
- * Notification webhook called when Life Asia drops a new file.
- * Logs to integration_audit_log and optionally triggers an
- * immediate SFTP poll.
+ * @swagger
+ * /integration/lifeasia/notify:
+ *   post:
+ *     tags: [Integration – Life Asia]
+ *     summary: Life Asia file notification webhook
+ *     description: |
+ *       Notification webhook called by the Life Asia AS400 system when a new
+ *       file has been dropped on the SFTP server.  Logs the event to
+ *       `integration_audit_log` and optionally triggers an immediate SFTP poll.
+ *     security:
+ *       - SystemBearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [file_name]
+ *             properties:
+ *               file_name:
+ *                 type: string
+ *                 example: POLICY_TXN_20260315.csv
+ *               file_type:
+ *                 type: string
+ *                 enum: [POLICY_TXN, AGENT_MASTER, PERSISTENCY]
+ *                 example: POLICY_TXN
+ *               record_count:
+ *                 type: integer
+ *                 example: 1250
+ *     responses:
+ *       200:
+ *         description: Notification accepted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Notification received
+ *                 file_name:
+ *                   type: string
+ *                   example: POLICY_TXN_20260315.csv
+ *       400:
+ *         description: Validation error — file_name is required
+ *       401:
+ *         description: System authentication token missing or invalid
+ *       500:
+ *         description: Internal server error
  */
 router.post('/notify', async (req, res) => {
   const start = Date.now();
@@ -58,8 +106,53 @@ router.post('/notify', async (req, res) => {
 });
 
 /**
- * GET /last-file
- * Returns info about the most recently processed Life Asia file.
+ * @swagger
+ * /integration/lifeasia/last-file:
+ *   get:
+ *     tags: [Integration – Life Asia]
+ *     summary: Get last processed Life Asia file
+ *     description: |
+ *       Returns metadata about the most recently processed Life Asia SFTP file
+ *       from the `file_processing_log` table.
+ *     security:
+ *       - SystemBearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Last file info (or null if none)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               nullable: true
+ *               properties:
+ *                 file_name:
+ *                   type: string
+ *                   example: POLICY_TXN_20260315.csv
+ *                 file_type:
+ *                   type: string
+ *                   example: POLICY_TXN
+ *                 total_rows:
+ *                   type: integer
+ *                   example: 1250
+ *                 valid_rows:
+ *                   type: integer
+ *                   example: 1240
+ *                 error_rows:
+ *                   type: integer
+ *                   example: 10
+ *                 status:
+ *                   type: string
+ *                   example: COMPLETED
+ *                 started_at:
+ *                   type: string
+ *                   format: date-time
+ *                 completed_at:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: System authentication token missing or invalid
+ *       500:
+ *         description: Internal server error
  */
 router.get('/last-file', async (_req, res) => {
   try {
