@@ -332,10 +332,9 @@ router.post('/failed-records/:id/skip', async (req, res) => {
   try {
     const table = req.query.table === 'stg_agent_master' ? 'stg_agent_master' : 'stg_policy_transactions';
     const { id } = req.params;
-    const idCol = table === 'stg_agent_master' ? 'id' : 'id';
 
     await pool.query(
-      `UPDATE ${table} SET stg_status = 'SKIPPED' WHERE ${idCol} = $1`,
+      `UPDATE ${table} SET stg_status = 'SKIPPED' WHERE id = $1`,
       [id]
     );
     res.json({ success: true });

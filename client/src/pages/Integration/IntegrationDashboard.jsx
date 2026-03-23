@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const API = import.meta.env.VITE_API_URL || '';
+const REFRESH_INTERVAL_MS = 30_000;
 
 /* ── helpers ───────────────────────────────────────────── */
 
@@ -59,7 +60,7 @@ export default function IntegrationDashboard() {
 
   useEffect(() => {
     fetchAll();
-    const iv = setInterval(fetchAll, 30_000);
+    const iv = setInterval(fetchAll, REFRESH_INTERVAL_MS);
     return () => clearInterval(iv);
   }, [fetchAll]);
 
