@@ -82,6 +82,86 @@ Policy numbers in JSON responses are automatically masked (e.g. `POL****234`) wh
 
 ## AUTH
 
+### POST `/api/auth/login`
+**Tag:** Authentication
+**Auth:** None
+**Status:** 🔜 Planned
+
+Authenticate a user with credentials and receive a JWT.
+
+#### Request
+```
+POST /api/auth/login
+Content-Type: application/json
+```
+
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `username` | string | ✅ | User login name | `"admin"` |
+| `password` | string | ✅ | User password | `"admin123"` |
+
+```json
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+#### Response (200)
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "role": "ADMIN"
+  },
+  "expires_at": "2026-01-02T00:00:00.000Z"
+}
+```
+
+#### Response (401)
+```json
+{ "error": "Invalid username or password" }
+```
+
+#### Notes
+- Currently a placeholder — user auth is pass-through.
+- Will be implemented with session-based or JWT user authentication.
+
+---
+
+### POST `/api/auth/refresh`
+**Tag:** Authentication
+**Auth:** Required (User)
+**Status:** 🔜 Planned
+
+Refresh an expiring user token.
+
+#### Request
+```
+POST /api/auth/refresh
+Content-Type: application/json
+Authorization: Bearer <user_token>
+```
+
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `refreshToken` | string | ✅ | Current valid token | `"eyJhbGciOi..."` |
+
+#### Response (200)
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "expires_at": "2026-01-03T00:00:00.000Z"
+}
+```
+
+#### Notes
+- Planned for future implementation alongside user login.
+
+---
+
 ### POST `/api/auth/system-token`
 **Tag:** Authentication
 **Auth:** None (this *is* the auth endpoint)
@@ -268,6 +348,37 @@ Delete a program.
 
 #### Response (200)
 Returns the deleted program object.
+
+#### Response (404)
+```json
+{ "error": "Program not found" }
+```
+
+---
+
+### PATCH `/api/programs/{id}/status`
+**Tag:** Programs
+**Auth:** Required (User)
+
+Toggle the active/inactive status of a program.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|-----------|-----|------|----------|-------------|
+| `id` | path | integer | ✅ | Program ID |
+
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `is_active` | boolean | ✅ | New status | `false` |
+
+```json
+{
+  "is_active": false
+}
+```
+
+#### Response (200)
+Returns the updated program with new status.
 
 #### Response (404)
 ```json
@@ -942,6 +1053,53 @@ Upload incentive rate schedules from CSV.
 
 ---
 
+### POST `/api/upload/products`
+**Tag:** Data Upload
+**Auth:** Required (User)
+
+Upload product master data from CSV.
+
+#### Request
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file (CSV) | ✅ | Product master CSV |
+
+**CSV columns:** `product_code`, `product_name`, `product_category`, `product_type`, `min_premium`, `max_premium`, `min_term`, `max_term`
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "inserted": 45
+}
+```
+
+---
+
+### POST `/api/upload/mlm-override-rates`
+**Tag:** Data Upload
+**Auth:** Required (User)
+
+Upload MLM hierarchy override rate schedules from CSV.
+
+#### Request
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file (CSV) | ✅ | Override rates CSV |
+| `programId` | integer | ✅ | Program ID (form field) |
+
+**CSV columns:** `hierarchy_level`, `override_level`, `product_code`, `channel_code`, `rate_type`, `override_rate`, `effective_from`, `effective_to`
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "inserted": 80
+}
+```
+
+---
+
 ## CALCULATION
 
 ### POST `/api/calculate/run`
@@ -1038,6 +1196,75 @@ Returns full incentive breakdown with KPI results, milestone hits, and payout ca
 
 ---
 
+### GET `/api/calculate/status/{jobId}`
+**Tag:** Calculations
+**Auth:** Required (User)
+
+Check the status of a calculation job by its ID.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|-----------|-----|------|----------|-------------|---------|
+| `jobId` | path | integer | ✅ | Calculation job ID | `1` |
+
+#### Response (200)
+```json
+{
+  "jobId": 1,
+  "status": "COMPLETED",
+  "programId": 12,
+  "periodStart": "2026-01-01",
+  "periodEnd": "2026-01-31",
+  "totalAgents": 150,
+  "successCount": 148,
+  "errorCount": 2,
+  "startedAt": "2026-01-15T10:00:00.000Z",
+  "completedAt": "2026-01-15T10:05:30.000Z"
+}
+```
+
+#### Response (404)
+```json
+{ "error": "Job not found" }
+```
+
+---
+
+### POST `/api/calculate/recompute/{agentCode}`
+**Tag:** Calculations
+**Auth:** Required (User)
+
+Recompute incentive for a single agent. Useful for recalculating after data corrections.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|-----------|-----|------|----------|-------------|---------|
+| `agentCode` | path | string | ✅ | Agent code | `"AGT001"` |
+
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `periodStart` | date | ✅ | Period start date | `"2026-01-01"` |
+| `periodEnd` | date | ✅ | Period end date | `"2026-01-31"` |
+
+```json
+{
+  "periodStart": "2026-01-01",
+  "periodEnd": "2026-01-31"
+}
+```
+
+#### Response (200)
+```json
+{
+  "agentCode": "AGT001",
+  "programId": 12,
+  "totalIncentive": 25000.00,
+  "status": "DRAFT"
+}
+```
+
+---
+
 ## INCENTIVE RESULTS
 
 ### GET `/api/incentive-results/stage-summary`
@@ -1123,6 +1350,46 @@ List incentive results with optional filters.
     "persistency_gate_passed": true
   }
 ]
+```
+
+---
+
+### GET `/api/incentive-results/{id}`
+**Tag:** Incentive Results
+**Auth:** Required (User)
+
+Get detailed incentive result for a single record by ID.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|-----------|-----|------|----------|-------------|
+| `id` | path | integer | ✅ | Incentive result ID |
+
+#### Response (200)
+```json
+{
+  "id": 1024,
+  "agent_code": "AGT-5001",
+  "agent_name": "Ravi Kumar",
+  "channel_name": "Agency",
+  "region_name": "NORTH",
+  "program_name": "Q1 2026 Sales Incentive",
+  "total_incentive": 25000.00,
+  "net_self_incentive": 20000.00,
+  "total_override": 5000.00,
+  "status": "DRAFT",
+  "persistency_gate_passed": true,
+  "kpi_results": [],
+  "payout_details": [],
+  "period_start": "2026-01-01",
+  "period_end": "2026-01-31",
+  "calculated_at": "2026-02-01T10:00:00.000Z"
+}
+```
+
+#### Response (404)
+```json
+{ "error": "Result not found" }
 ```
 
 ---
@@ -1472,7 +1739,131 @@ Each record:
 
 ---
 
+### POST `/api/integration/penta/policy-transaction`
+**Tag:** Integration - Inbound
+**Auth:** Required (System Token)
+
+Push a single policy transaction from Penta for staging and validation.
+
+#### Request
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `policy_number` | string | ✅ | Policy number | `"POL-2026-001234"` |
+| `agent_code` | string | ✅ | Agent code | `"AGT001"` |
+| `product_code` | string | ✅ | Product code | `"LIFE-ENDOW-20"` |
+| `premium_amount` | number | ✅ | Premium amount | `25000.00` |
+| `transaction_type` | string | ✅ | Transaction type | `"NEW_BUSINESS"` |
+| `issue_date` | date | ✅ | Issue date | `"2026-01-15"` |
+
+```json
+{
+  "policy_number": "POL-2026-001234",
+  "agent_code": "AGT001",
+  "product_code": "LIFE-ENDOW-20",
+  "premium_amount": 25000.00,
+  "transaction_type": "NEW_BUSINESS",
+  "issue_date": "2026-01-15"
+}
+```
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "staged": 1
+}
+```
+
+---
+
+### POST `/api/integration/penta/agent-status-change`
+**Tag:** Integration - Inbound
+**Auth:** Required (System Token)
+
+Notify the system of an agent status change from Penta.
+
+#### Request
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `agent_code` | string | ✅ | Agent code | `"AGT001"` |
+| `new_status` | string | ✅ | New status value | `"ACTIVE"` |
+| `effective_date` | date | ✅ | Effective date | `"2026-01-15"` |
+| `reason` | string | | Reason for change | `"Annual license renewal"` |
+
+```json
+{
+  "agent_code": "AGT001",
+  "new_status": "ACTIVE",
+  "effective_date": "2026-01-15",
+  "reason": "Annual license renewal completed"
+}
+```
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "agent_code": "AGT001",
+  "status": "ACTIVE"
+}
+```
+
+---
+
+### GET `/api/integration/penta/sync-status`
+**Tag:** Integration - Inbound
+**Auth:** Required (System Token)
+
+Check Penta integration heartbeat and last sync timestamp.
+
+#### Response (200)
+```json
+{
+  "status": "OK",
+  "timestamp": "2026-01-15T08:30:00.000Z",
+  "lastSync": "2026-01-15T08:30:00.000Z"
+}
+```
+
+---
+
 ## INTEGRATION — OUTBOUND
+
+### POST `/api/integration/export/sap-fico`
+**Tag:** Integration - Outbound
+**Auth:** Required (User)
+
+Generate SAP FICO export file for approved incentive results.
+
+#### Request
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `programId` | integer | ✅ | Program ID | `12` |
+| `periodStart` | date | ✅ | Period start date | `"2026-01-01"` |
+
+```json
+{
+  "programId": 12,
+  "periodStart": "2026-01-01"
+}
+```
+
+#### Response (200) — CSV Download
+```
+Content-Type: text/csv
+Content-Disposition: attachment; filename="SAP_FICO_INCENTIVE_20260201_100000.csv"
+```
+
+#### Response (400)
+```json
+{ "error": "programId and periodStart are required" }
+```
+
+#### Notes
+- Only `APPROVED` results with `total_incentive > 0` are exported.
+- Logged to `outbound_file_log` with `target_system = 'SAP_FICO'`.
+
+---
 
 ### POST `/api/integration/export/oracle-financials`
 **Tag:** Integration - Outbound
@@ -1532,6 +1923,32 @@ Content-Disposition: attachment; filename="ORACLE_AP_INCENTIVE_20250716_143022.c
 - Logged to `outbound_file_log` with status `GENERATED`.
 - Configuration via env variables: `ORACLE_OPERATING_UNIT`, `ORACLE_CURRENCY`, `ORACLE_PAYMENT_TERMS`, `ORACLE_GL_ACCOUNT`.
 - Policy number masking is **not** applied to export endpoints.
+
+---
+
+### GET `/api/integration/export/history`
+**Tag:** Integration - Outbound
+**Auth:** Required (User)
+
+View history of generated export files from `outbound_file_log`.
+
+#### Response (200)
+```json
+[
+  {
+    "id": 1,
+    "file_name": "ORACLE_AP_INCENTIVE_20260201_100000.csv",
+    "target_system": "ORACLE_AP",
+    "program_id": 12,
+    "period_start": "2026-01-01",
+    "record_count": 85,
+    "total_amount": 450000.00,
+    "generated_by": "finance.head",
+    "generated_at": "2026-02-01T10:00:00.000Z",
+    "status": "GENERATED"
+  }
+]
+```
 
 ---
 
