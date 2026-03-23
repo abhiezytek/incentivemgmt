@@ -73,7 +73,7 @@ Policies that are newly issued within the incentive period. NB count and NB prem
 | Auth | jsonwebtoken | 9.x |
 | SFTP | ssh2-sftp-client | 12.x |
 | Scheduler | node-cron | 4.x |
-| API Docs | swagger-ui-express + swagger-jsdoc | 5.x / 6.x |
+| API Docs | swagger-ui-express (5.x) + swagger-jsdoc (6.x) | — |
 | Excel Export | ExcelJS | 4.x |
 
 ### 2.2 Folder Structure
