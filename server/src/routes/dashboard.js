@@ -2,6 +2,224 @@ import express from 'express';
 import { query } from '../db/pool.js';
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/dashboard/summary:
+ *   get:
+ *     tags:
+ *       - Dashboard
+ *     summary: Dashboard summary
+ *     description: >
+ *       Returns a comprehensive dashboard payload with seven data sections:
+ *       KPI totals, channel breakdown, product mix, top agents, active
+ *       programs, pipeline status, and recent activity. All sections are
+ *       optionally filtered by program ID and period.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: programId
+ *         schema:
+ *           type: integer
+ *         description: Filter by incentive program ID
+ *         example: 12
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by period start date
+ *         example: "2025-01-01"
+ *     responses:
+ *       200:
+ *         description: Dashboard summary with all data sections
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 kpi:
+ *                   type: object
+ *                   properties:
+ *                     total_pool:
+ *                       type: number
+ *                     total_self:
+ *                       type: number
+ *                     total_override:
+ *                       type: number
+ *                     agent_count:
+ *                       type: integer
+ *                     paid_count:
+ *                       type: integer
+ *                     agents_below_gate:
+ *                       type: integer
+ *                     avg_achievement:
+ *                       type: number
+ *                     total_nb_premium:
+ *                       type: number
+ *                     nb_policy_count:
+ *                       type: integer
+ *                     total_target:
+ *                       type: number
+ *                     avg_persistency_13m:
+ *                       type: number
+ *                 channelBreakdown:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       channel:
+ *                         type: string
+ *                       self_incentive:
+ *                         type: number
+ *                       override_incentive:
+ *                         type: number
+ *                       total_incentive:
+ *                         type: number
+ *                       agent_count:
+ *                         type: integer
+ *                 productMix:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       product:
+ *                         type: string
+ *                       product_category:
+ *                         type: string
+ *                       premium:
+ *                         type: number
+ *                       policy_count:
+ *                         type: integer
+ *                 topAgents:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       agent_code:
+ *                         type: string
+ *                       agent_name:
+ *                         type: string
+ *                       total_incentive:
+ *                         type: number
+ *                       nb_achievement_pct:
+ *                         type: number
+ *                 programs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       start_date:
+ *                         type: string
+ *                         format: date
+ *                       end_date:
+ *                         type: string
+ *                         format: date
+ *                       status:
+ *                         type: string
+ *                       channel:
+ *                         type: string
+ *                 pipelineStatus:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     properties:
+ *                       count:
+ *                         type: integer
+ *                       pool:
+ *                         type: number
+ *                 recentActivity:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *                       time:
+ *                         type: string
+ *                       icon:
+ *                         type: string
+ *             example:
+ *               kpi:
+ *                 total_pool: 485000.00
+ *                 total_self: 340000.00
+ *                 total_override: 145000.00
+ *                 agent_count: 80
+ *                 paid_count: 52
+ *                 agents_below_gate: 6
+ *                 avg_achievement: 112.5
+ *                 total_nb_premium: 25000000
+ *                 nb_policy_count: 320
+ *                 total_target: 22000000
+ *                 avg_persistency_13m: 87.3
+ *               channelBreakdown:
+ *                 - channel: "Bancassurance"
+ *                   self_incentive: 180000.00
+ *                   override_incentive: 72000.00
+ *                   total_incentive: 252000.00
+ *                   agent_count: 42
+ *                 - channel: "Agency"
+ *                   self_incentive: 160000.00
+ *                   override_incentive: 73000.00
+ *                   total_incentive: 233000.00
+ *                   agent_count: 38
+ *               productMix:
+ *                 - product: "Term Life Shield"
+ *                   product_category: "Protection"
+ *                   premium: 8500000
+ *                   policy_count: 120
+ *                 - product: "Savings Plus"
+ *                   product_category: "Savings"
+ *                   premium: 6200000
+ *                   policy_count: 85
+ *               topAgents:
+ *                 - agent_code: "AGT-00451"
+ *                   agent_name: "Priya Sharma"
+ *                   total_incentive: 18500.00
+ *                   nb_achievement_pct: 142.5
+ *                 - agent_code: "AGT-00322"
+ *                   agent_name: "Rajesh Kumar"
+ *                   total_incentive: 15200.00
+ *                   nb_achievement_pct: 128.0
+ *               programs:
+ *                 - id: 12
+ *                   name: "Q1 2025 Life Sales"
+ *                   start_date: "2025-01-01"
+ *                   end_date: "2025-03-31"
+ *                   status: "ACTIVE"
+ *                   channel: "Bancassurance"
+ *               pipelineStatus:
+ *                 DRAFT:
+ *                   count: 45
+ *                   pool: 182500.00
+ *                 APPROVED:
+ *                   count: 30
+ *                   pool: 125000.00
+ *                 PAID:
+ *                   count: 52
+ *                   pool: 218000.00
+ *               recentActivity:
+ *                 - type: "calculation"
+ *                   message: "Incentives calculated for 80 agents"
+ *                   time: "15 Jan, 02:30 pm"
+ *                   icon: "🧮"
+ *                 - type: "approval"
+ *                   message: "Bulk approved 30 agents"
+ *                   time: "14 Jan, 11:00 am"
+ *                   icon: "✅"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
+ */
 router.get('/summary', async (req, res) => {
   try {
     const { programId, period } = req.query;
