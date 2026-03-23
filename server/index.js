@@ -19,6 +19,7 @@ import persistencyDataRouter from './src/routes/persistencyData.js';
 import productsRouter from './src/routes/products.js';
 import incentiveRatesRouter from './src/routes/incentiveRates.js';
 import { startSftpPollers } from './src/jobs/sftpPoller.js';
+import { startHierarchySync } from './src/jobs/hierarchySync.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -50,6 +51,7 @@ app.use('/api/incentive-rates',    incentiveRatesRouter);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startSftpPollers();
+  startHierarchySync();
 });
 
 export default app;
