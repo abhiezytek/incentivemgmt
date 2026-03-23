@@ -220,7 +220,7 @@
 | **API Auth**         | All API calls use JWT Bearer tokens                                |
 | **IP Whitelisting**  | Not required currently                                             |
 | **Data Masking**     | Policy numbers masked in UI and exports                            |
-| **Masking Format**   | Show first 3 + last 2 digits only (e.g., `POL****234`)            |
+| **Masking Format**   | Show first 3 + last 3 characters (e.g., `POL****234`)             |
 | **Token Expiry**     | JWT tokens have configurable expiry                                |
 | **Transport**        | HTTPS for all API communication; SFTP (SSH-encrypted) for files    |
 
@@ -228,11 +228,11 @@
 
 | Original Policy Number | Masked Value     |
 |------------------------|------------------|
-| `POL12345234`          | `POL****234`     |
-| `ABC98765432`          | `ABC****432`     |
-| `LIF00001199`          | `LIF****199`     |
+| `POL12345234`          | `POL*****234`    |
+| `ABC98765432`          | `ABC*****432`    |
+| `LIF00001199`          | `LIF*****199`    |
 
-> **Rule:** Display the first 3 characters, replace middle characters with `****`, display the last 2–3 digits.
+> **Rule:** Display the first 3 characters, replace middle characters with asterisks, display the last 3 characters.
 
 ---
 

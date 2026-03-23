@@ -86,12 +86,12 @@ CREATE TABLE api_clients (
   created_at    TIMESTAMP DEFAULT NOW()
 );
 
--- Seed rows — client_secret_hash must be set via application before use
-INSERT INTO api_clients (client_id, client_name, client_secret_hash, allowed_endpoints) VALUES
+-- Seed rows — is_active=FALSE until client_secret_hash is properly configured
+INSERT INTO api_clients (client_id, client_name, client_secret_hash, allowed_endpoints, is_active) VALUES
 ('PENTA_SYS',    'KGILS Penta System',    'CHANGE_ME',
- ARRAY['/api/integration/penta/*']),
+ ARRAY['/api/integration/penta/*'],    FALSE),
 ('LIFEASIA_SYS', 'Life Asia AS400',        'CHANGE_ME',
- ARRAY['/api/integration/lifeasia/*']);
+ ARRAY['/api/integration/lifeasia/*'], FALSE);
 
 -- 6. Outbound file log
 CREATE TABLE outbound_file_log (
