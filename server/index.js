@@ -20,6 +20,7 @@ import productsRouter from './src/routes/products.js';
 import incentiveRatesRouter from './src/routes/incentiveRates.js';
 import integrationRouter from './src/routes/integration.js';
 import systemTokenRouter from './src/routes/auth/systemToken.js';
+import maskResponse from './src/middleware/maskResponse.js';
 import { startSftpPollers } from './src/jobs/sftpPoller.js';
 import { startHierarchySync } from './src/jobs/hierarchySync.js';
 
@@ -28,6 +29,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use(maskResponse);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
