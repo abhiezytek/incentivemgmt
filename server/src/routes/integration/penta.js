@@ -11,8 +11,43 @@ const router = Router();
 // ─────────────────────────────────────────────
 
 /**
- * POST /heartbeat
- * Health-check endpoint for the Penta system to confirm connectivity.
+ * @swagger
+ * /api/integration/penta/heartbeat:
+ *   post:
+ *     tags:
+ *       - Integration - Inbound
+ *     summary: Penta system health check
+ *     description: >
+ *       Health-check endpoint for the Penta system to confirm connectivity.
+ *       Logs the heartbeat to `integration_audit_log` and updates the
+ *       `PENTA_LAST_SYNC` value in `system_config`.
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Heartbeat acknowledged
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: OK
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2025-07-15T08:30:00.000Z"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Heartbeat logging failed
  */
 router.post('/heartbeat', async (req, res) => {
   try {
@@ -36,9 +71,91 @@ router.post('/heartbeat', async (req, res) => {
 });
 
 /**
- * POST /policy-data
- * Receives policy transaction data from Penta and stages it
- * in stg_policy_transactions for validation.
+ * @swagger
+ * /api/integration/penta/policy-data:
+ *   post:
+ *     tags:
+ *       - Integration - Inbound
+ *     summary: Receive policy data from Penta
+ *     description: >
+ *       Accepts an array of policy transaction records from the Penta system
+ *       and stages them in `stg_policy_transactions` for downstream validation
+ *       and processing. Each batch is assigned a unique `batch_id`.
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - records
+ *             properties:
+ *               records:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     policy_number:
+ *                       type: string
+ *                       example: "POL-2025-001234"
+ *                     agent_code:
+ *                       type: string
+ *                       example: "AGT-5001"
+ *                     product_code:
+ *                       type: string
+ *                       example: "LIFE-ENDOW-20"
+ *                     premium_amount:
+ *                       type: number
+ *                       example: 25000.00
+ *                     transaction_type:
+ *                       type: string
+ *                       example: "NEW_BUSINESS"
+ *                     issue_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2025-07-01"
+ *     responses:
+ *       200:
+ *         description: Policy data staged successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 batch_id:
+ *                   type: string
+ *                   example: "PENTA_1752595200000"
+ *                 received:
+ *                   type: integer
+ *                   example: 5
+ *                 staged:
+ *                   type: integer
+ *                   example: 5
+ *       400:
+ *         description: Invalid request body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: records array is required and must not be empty
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to process policy data
  */
 router.post('/policy-data', async (req, res) => {
   const start = Date.now();

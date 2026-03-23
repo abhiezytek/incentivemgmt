@@ -58,10 +58,81 @@ function csvField(value) {
   return str;
 }
 
-// ─────────────────────────────────────────────
-// POST /oracle-financials
-// ─────────────────────────────────────────────
-
+/**
+ * @swagger
+ * /api/integration/export/oracle-financials:
+ *   post:
+ *     tags:
+ *       - Integration - Outbound
+ *     summary: Generate Oracle AP CSV export
+ *     description: >
+ *       Generates an Oracle Accounts Payable CSV file for approved incentive
+ *       results matching the specified program and period. The response is
+ *       streamed as a downloadable CSV attachment. Each export is logged to
+ *       `outbound_file_log`.
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - programId
+ *               - periodStart
+ *             properties:
+ *               programId:
+ *                 type: integer
+ *                 description: Incentive program identifier
+ *                 example: 12
+ *               periodStart:
+ *                 type: string
+ *                 format: date
+ *                 description: Start of the incentive period (ISO date)
+ *                 example: "2025-07-01"
+ *     responses:
+ *       200:
+ *         description: CSV file download
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *             example: >
+ *               OPERATING_UNIT,SUPPLIER_NUMBER,SUPPLIER_NAME,INVOICE_NUMBER,...
+ *               KGILS India,AGT-5001,Ravi Kumar,INC-12-202507-AGT-5001,...
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: programId and periodStart are required
+ *       404:
+ *         description: No approved results found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: No approved incentive results found for the given program and period
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to generate Oracle AP file
+ */
 router.post('/oracle-financials', async (req, res) => {
   try {
     const { programId, periodStart } = req.body;
