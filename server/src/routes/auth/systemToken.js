@@ -6,18 +6,79 @@ import { query } from '../../db/pool.js';
 const router = Router();
 
 /**
- * POST /api/auth/system-token
- *
- * Issues a JWT for system-to-system API calls.
- *
- * Body: { client_id, client_secret }
- *
- * Steps:
- *  1. Lookup client_id in api_clients
- *  2. Verify client_secret against stored bcrypt hash
- *  3. Generate JWT with { client_id, type: 'SYSTEM' }
- *  4. Expiry: 24 hours
- *  5. Return { token, expires_at }
+ * @swagger
+ * /api/auth/system-token:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Issue a system-to-system JWT
+ *     description: >
+ *       Validates API-client credentials and returns a signed JWT for
+ *       machine-to-machine communication. The token is valid for 24 hours.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - client_id
+ *               - client_secret
+ *             properties:
+ *               client_id:
+ *                 type: string
+ *                 example: ins-claims-service
+ *               client_secret:
+ *                 type: string
+ *                 example: s3cr3t-k3y-value
+ *     responses:
+ *       200:
+ *         description: JWT issued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 expires_at:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2025-07-11T18:30:00.000Z"
+ *       400:
+ *         description: Missing required credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: client_id and client_secret are required
+ *       401:
+ *         description: Invalid credentials or disabled client
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: INVALID_CREDENTIALS
+ *                 message:
+ *                   type: string
+ *                   example: Invalid client_id or client_secret
+ *       500:
+ *         description: Server configuration or internal error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Failed to generate system token
  */
 router.post('/system-token', async (req, res) => {
   try {
