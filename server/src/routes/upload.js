@@ -15,9 +15,57 @@ function validateColumns(rows, required) {
   return missing.length ? `Missing columns: ${missing.join(', ')}` : null;
 }
 
-// ─────────────────────────────────────────
-// POST /api/upload/policy-transactions
-// ─────────────────────────────────────────
+/**
+ * @swagger
+ * /api/upload/policy-transactions:
+ *   post:
+ *     tags: [Data Upload]
+ *     summary: Upload policy transactions CSV
+ *     description: |
+ *       Parses an uploaded CSV file containing insurance policy transactions and upserts
+ *       them into the `ins_policy_transactions` table. Duplicate rows (matched on
+ *       policy_number + transaction_type + due_date) are updated with the latest
+ *       premium_amount, paid_date, and policy_status.
+ *
+ *       **Required CSV columns:** policy_number, agent_code, product_code,
+ *       transaction_type, premium_amount, annualized_premium, paid_date
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file (max 20 MB)
+ *     responses:
+ *       200:
+ *         description: Upload summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               inserted: 1240
+ *               total: 1300
+ *               skipped: 60
+ *       400:
+ *         description: Validation error (empty file or missing columns)
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Missing columns: paid_date"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
+ */
 router.post('/policy-transactions', upload.single('file'), async (req, res) => {
   try {
     const rows = await parseCSV(req.file.buffer);
@@ -70,9 +118,55 @@ router.post('/policy-transactions', upload.single('file'), async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────
-// POST /api/upload/agents
-// ─────────────────────────────────────────
+/**
+ * @swagger
+ * /api/upload/agents:
+ *   post:
+ *     tags: [Data Upload]
+ *     summary: Upload agents CSV
+ *     description: |
+ *       Parses an uploaded CSV file of insurance agents and upserts them into the
+ *       `ins_agents` table. Existing agents (matched on agent_code) have their name,
+ *       status, and parent_agent_id updated. After insertion the hierarchy_path column
+ *       is recalculated for all agents.
+ *
+ *       **Required CSV columns:** agent_code, agent_name, channel_code, region_code,
+ *       hierarchy_level
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file (max 20 MB)
+ *     responses:
+ *       200:
+ *         description: Upload summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               inserted: 350
+ *       400:
+ *         description: Validation error (empty file or missing columns)
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Missing columns: hierarchy_level"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
+ */
 router.post('/agents', upload.single('file'), async (req, res) => {
   try {
     const rows = await parseCSV(req.file.buffer);
@@ -133,9 +227,59 @@ router.post('/agents', upload.single('file'), async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────
-// POST /api/upload/persistency
-// ─────────────────────────────────────────
+/**
+ * @swagger
+ * /api/upload/persistency:
+ *   post:
+ *     tags: [Data Upload]
+ *     summary: Upload persistency data CSV
+ *     description: |
+ *       Parses an uploaded CSV file containing agent policy-persistency metrics and
+ *       upserts them into `ins_persistency_data`. Duplicates (matched on agent_code +
+ *       program_id + persistency_month + period_start) are updated with the latest
+ *       policies_due and policies_renewed counts.
+ *
+ *       **Required CSV columns:** agent_code, persistency_month, period_start,
+ *       period_end, policies_due, policies_renewed
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file, programId]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file (max 20 MB)
+ *               programId:
+ *                 type: integer
+ *                 description: Incentive program ID the data belongs to
+ *                 example: 10
+ *     responses:
+ *       200:
+ *         description: Upload summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               inserted: 820
+ *       400:
+ *         description: Validation error (empty file or missing columns)
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Missing columns: policies_renewed"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
+ */
 router.post('/persistency', upload.single('file'), async (req, res) => {
   try {
     const { programId } = req.body;
@@ -171,9 +315,50 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────
-// POST /api/upload/incentive-rates
-// ─────────────────────────────────────────
+/**
+ * @swagger
+ * /api/upload/incentive-rates:
+ *   post:
+ *     tags: [Data Upload]
+ *     summary: Upload incentive rates CSV
+ *     description: |
+ *       Parses an uploaded CSV file of product-level incentive rates and inserts them
+ *       into `ins_incentive_rates`. Each row maps a product, channel, policy year, and
+ *       transaction type to a commission or bonus rate, optionally bounded by premium
+ *       slabs and policy term ranges.
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file, programId]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file (max 20 MB)
+ *               programId:
+ *                 type: integer
+ *                 description: Incentive program ID the rates belong to
+ *                 example: 10
+ *     responses:
+ *       200:
+ *         description: Upload summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               inserted: 156
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
+ */
 router.post('/incentive-rates', upload.single('file'), async (req, res) => {
   try {
     const { programId } = req.body;

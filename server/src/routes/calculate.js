@@ -6,12 +6,77 @@ import { calculateAgentIncentive } from '../engine/insuranceCalcEngine.js';
 const router = Router();
 
 /**
- * POST /calculate/run
- *
- * Accepts { programId, periodStart, periodEnd }.
- * Fetches all active agents in the program's channel, runs
- * calculateAgentIncentive() for each agent sequentially, and returns
- * summary counts and total incentive pool.
+ * @swagger
+ * /api/calculate/run:
+ *   post:
+ *     tags: [Calculations]
+ *     summary: Run bulk incentive calculation
+ *     description: |
+ *       Triggers a full incentive calculation for every active agent in the specified
+ *       program's channel. Each agent is processed sequentially via the insurance
+ *       calculation engine. The response includes summary counts and the aggregate
+ *       incentive pool. Any per-agent errors are returned in the `errors` array.
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [programId, periodStart, periodEnd]
+ *             properties:
+ *               programId:
+ *                 type: integer
+ *                 description: Incentive program ID
+ *               periodStart:
+ *                 type: string
+ *                 format: date
+ *                 description: Period start date (YYYY-MM-DD)
+ *               periodEnd:
+ *                 type: string
+ *                 format: date
+ *                 description: Period end date (YYYY-MM-DD)
+ *           example:
+ *             programId: 10
+ *             periodStart: "2025-01-01"
+ *             periodEnd: "2025-03-31"
+ *     responses:
+ *       200:
+ *         description: Calculation summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               programId: 10
+ *               periodStart: "2025-01-01"
+ *               periodEnd: "2025-03-31"
+ *               totalAgents: 150
+ *               successCount: 148
+ *               errorCount: 2
+ *               totalIncentivePool: 1245800.50
+ *               errors:
+ *                 - agentCode: "AGT-0042"
+ *                   error: "No active rates found for product TERM-LIFE"
+ *                 - agentCode: "AGT-0099"
+ *                   error: "Missing persistency data for month 13"
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "programId, periodStart, and periodEnd are required"
+ *       404:
+ *         description: Program not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Program not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
  */
 router.post('/run', async (req, res) => {
   try {
@@ -72,10 +137,71 @@ router.post('/run', async (req, res) => {
 });
 
 /**
- * GET /calculate/results?program_id=&period=YYYY-MM
- *
- * Returns incentive_results rows joined with users for the given program and
- * period, ordered by total_incentive descending (for leaderboard ranking).
+ * @swagger
+ * /api/calculate/results:
+ *   get:
+ *     tags: [Calculations]
+ *     summary: Get calculation results
+ *     description: |
+ *       Returns incentive result rows for the given program and calendar month,
+ *       joined with user and channel details. Results are sorted by total_incentive
+ *       descending to support leaderboard ranking.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: program_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Incentive program ID
+ *         example: 10
+ *       - in: query
+ *         name: period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: ^\d{4}-\d{2}$
+ *         description: Calendar month in YYYY-MM format
+ *         example: "2025-01"
+ *     responses:
+ *       200:
+ *         description: Array of incentive result rows
+ *         content:
+ *           application/json:
+ *             example:
+ *               - id: 501
+ *                 user_id: 12
+ *                 user_name: "Priya Sharma"
+ *                 email: "priya.sharma@example.com"
+ *                 channel_name: "Bancassurance"
+ *                 program_id: 10
+ *                 period_start: "2025-01-01"
+ *                 total_incentive: 42500.00
+ *                 base_incentive: 35000.00
+ *                 team_rollup: 7500.00
+ *               - id: 502
+ *                 user_id: 7
+ *                 user_name: "Ravi Patel"
+ *                 email: "ravi.patel@example.com"
+ *                 channel_name: "Agency"
+ *                 program_id: 10
+ *                 period_start: "2025-01-01"
+ *                 total_incentive: 38200.00
+ *                 base_incentive: 38200.00
+ *                 team_rollup: 0
+ *       400:
+ *         description: Missing or invalid query parameters
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "program_id and period (YYYY-MM) are required"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
  */
 router.get('/results', async (req, res) => {
   try {
@@ -107,17 +233,84 @@ router.get('/results', async (req, res) => {
 });
 
 /**
- * POST /calculate/:programId/:userId/:period
- *
- * period format: YYYY-MM  (uses first and last day of the month)
- *
- * Delegates to the calculateIncentive engine which:
- *  1. Loads KPI definitions + milestones for the program
- *  2. Loads performance data and computes achievement percentages
- *  3. Determines milestone hits, evaluates qualifying gates
- *  4. Computes payout slabs (MULTIPLY / FLAT / PERCENTAGE_OF) with weight_pct & max_cap
- *  5. Computes team rollup from direct reportees' incentive_results
- *  6. Persists into incentive_results and returns full breakdown
+ * @swagger
+ * /api/calculate/{programId}/{userId}/{period}:
+ *   post:
+ *     tags: [Calculations]
+ *     summary: Calculate incentive for a single user
+ *     description: |
+ *       Runs the full incentive calculation engine for one user in a specific program
+ *       and calendar month. The engine:
+ *       1. Loads KPI definitions and milestones for the program
+ *       2. Computes achievement percentages from performance data
+ *       3. Determines milestone hits and evaluates qualifying gates
+ *       4. Applies payout slabs (MULTIPLY / FLAT / PERCENTAGE_OF) with weight_pct and max_cap
+ *       5. Computes team rollup from direct reportees' incentive_results
+ *       6. Persists the result into incentive_results and returns the full breakdown
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: programId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Incentive program ID
+ *         example: 10
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User / agent ID
+ *         example: 12
+ *       - in: path
+ *         name: period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: ^\d{4}-\d{2}$
+ *         description: Calendar month in YYYY-MM format
+ *         example: "2025-01"
+ *     responses:
+ *       201:
+ *         description: Full incentive breakdown
+ *         content:
+ *           application/json:
+ *             example:
+ *               userId: 12
+ *               programId: 10
+ *               periodStart: "2025-01-01"
+ *               periodEnd: "2025-01-31"
+ *               kpiResults:
+ *                 - kpiId: 1
+ *                   kpiName: "New Business Premium"
+ *                   target: 500000
+ *                   actual: 620000
+ *                   achievement: 124.0
+ *                   milestoneHit: "GOLD"
+ *                 - kpiId: 2
+ *                   kpiName: "Persistency Ratio"
+ *                   target: 85
+ *                   actual: 91.2
+ *                   achievement: 107.3
+ *                   milestoneHit: "SILVER"
+ *               gatesCleared: true
+ *               baseIncentive: 35000.00
+ *               teamRollup: 7500.00
+ *               totalIncentive: 42500.00
+ *       400:
+ *         description: Invalid period format
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "period must be YYYY-MM"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
  */
 router.post('/:programId/:userId/:period', async (req, res) => {
   try {
