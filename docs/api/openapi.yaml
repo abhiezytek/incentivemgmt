@@ -16,32 +16,30 @@ servers:
 security:
 - BearerAuth: []
 tags:
-- name: Health
-  description: System health checks
 - name: Authentication
   description: Authentication and token management
 - name: Programs
   description: Incentive program management
-- name: KPI Definitions
-  description: Key Performance Indicator definitions
-- name: KPI Milestones
-  description: KPI milestone thresholds and ranges
+- name: KPI Rules
+  description: KPI definitions, milestones, and threshold configuration
 - name: Payout Rules
-  description: Payout calculation rules
-- name: Payout Slabs
-  description: Payout slab configurations
+  description: Payout calculation rules and slab configurations
 - name: Data Upload
   description: CSV file uploads for bulk data ingestion
 - name: Calculations
-  description: Incentive calculation engine and derived variables
+  description: Incentive calculation engine
 - name: Incentive Results
   description: Incentive result management and approval workflows
 - name: Leaderboard
   description: Agent performance leaderboards
 - name: Dashboard
   description: Executive dashboard summaries
-- name: Integration
-  description: System integrations, SFTP polling, and data exchange
+- name: Integration - Inbound
+  description: Inbound integrations from policy administration systems (Penta, LifeAsia)
+- name: Integration - Outbound
+  description: Outbound data exports to financial systems
+- name: Integration - Status
+  description: Integration monitoring, file logs, audit trails, and manual triggers
 - name: Agents
   description: Insurance agent management
 - name: Products
@@ -51,11 +49,13 @@ tags:
 - name: Policy Transactions
   description: Policy transaction records
 - name: Persistency Data
-  description: Policy persistency tracking
+  description: Policy persistency tracking data
 - name: Performance
-  description: Agent performance data
+  description: Agent performance input data
+- name: Derived Variables
+  description: Formula-driven derived calculation variables
 - name: Groups
-  description: User groups and team structures
+  description: User groups and team member management
 paths:
   /health:
     get:
@@ -373,7 +373,7 @@ paths:
   /kpis:
     get:
       tags:
-      - KPI Definitions
+      - KPI Rules
       summary: List all KPI definitions
       description: Retrieves all KPI definitions across all programs.
       operationId: listKpis
@@ -405,7 +405,7 @@ paths:
                 error: Internal server error
     post:
       tags:
-      - KPI Definitions
+      - KPI Rules
       summary: Create a new KPI definition
       description: Creates a new KPI definition to track agent performance metrics such as APE achievement, policy count,
         or persistency rates.
@@ -451,7 +451,7 @@ paths:
   /kpis/{id}:
     get:
       tags:
-      - KPI Definitions
+      - KPI Rules
       summary: Get a KPI definition with milestones
       description: Retrieves a single KPI definition by ID, including its associated milestones array.
       operationId: getKpi
@@ -496,7 +496,7 @@ paths:
                 error: Internal server error
     put:
       tags:
-      - KPI Definitions
+      - KPI Rules
       summary: Update a KPI definition
       description: Updates an existing KPI definition with new configuration values.
       operationId: updateKpi
@@ -555,7 +555,7 @@ paths:
                 error: Internal server error
     delete:
       tags:
-      - KPI Definitions
+      - KPI Rules
       summary: Delete a KPI definition
       description: Deletes a KPI definition and its associated milestones.
       operationId: deleteKpi
@@ -601,7 +601,7 @@ paths:
   /kpis/{kpiId}/milestones:
     get:
       tags:
-      - KPI Milestones
+      - KPI Rules
       summary: List milestones for a KPI
       description: Retrieves all milestone thresholds defined for a specific KPI definition.
       operationId: listKpiMilestones
@@ -648,7 +648,7 @@ paths:
                 error: Internal server error
     post:
       tags:
-      - KPI Milestones
+      - KPI Rules
       summary: Create a milestone for a KPI
       description: Adds a new milestone threshold to a KPI definition. Milestones define performance bands (e.g., 0-50%, 50-80%,
         80-100%).
@@ -701,7 +701,7 @@ paths:
   /kpis/{kpiId}/milestones/{milestoneId}:
     put:
       tags:
-      - KPI Milestones
+      - KPI Rules
       summary: Update a KPI milestone
       description: Updates an existing milestone threshold for a KPI definition.
       operationId: updateKpiMilestone
@@ -766,7 +766,7 @@ paths:
                 error: Internal server error
     delete:
       tags:
-      - KPI Milestones
+      - KPI Rules
       summary: Delete a KPI milestone
       description: Removes a milestone threshold from a KPI definition.
       operationId: deleteKpiMilestone
@@ -1046,7 +1046,7 @@ paths:
   /payouts/{ruleId}/slabs:
     get:
       tags:
-      - Payout Slabs
+      - Payout Rules
       summary: List slabs for a payout rule
       description: Retrieves all slab configurations for a specific payout rule.
       operationId: listPayoutSlabs
@@ -1093,7 +1093,7 @@ paths:
                 error: Internal server error
     post:
       tags:
-      - Payout Slabs
+      - Payout Rules
       summary: Create a payout slab
       description: Adds a new slab to a payout rule. Slabs define incentive tiers based on KPI achievement levels.
       operationId: createPayoutSlab
@@ -1145,7 +1145,7 @@ paths:
   /payouts/{ruleId}/slabs/{slabId}:
     put:
       tags:
-      - Payout Slabs
+      - Payout Rules
       summary: Update a payout slab
       description: Updates an existing payout slab configuration.
       operationId: updatePayoutSlab
@@ -1210,7 +1210,7 @@ paths:
                 error: Internal server error
     delete:
       tags:
-      - Payout Slabs
+      - Payout Rules
       summary: Delete a payout slab
       description: Removes a slab configuration from a payout rule.
       operationId: deletePayoutSlab
@@ -2242,7 +2242,7 @@ paths:
   /integration/penta/heartbeat:
     post:
       tags:
-      - Integration
+      - Integration - Inbound
       summary: Penta system heartbeat
       description: Heartbeat endpoint called by the Penta policy administration system to indicate connectivity. Used for
         health monitoring of the integration.
@@ -2283,7 +2283,7 @@ paths:
   /integration/penta/policy-data:
     post:
       tags:
-      - Integration
+      - Integration - Inbound
       summary: Receive policy data from Penta
       description: Receives a batch of policy transaction records from the Penta policy administration system. Records are
         staged for validation before being imported.
@@ -2372,7 +2372,7 @@ paths:
   /integration/lifeasia/notify:
     post:
       tags:
-      - Integration
+      - Integration - Inbound
       summary: LifeAsia file notification
       description: Receives a notification from LifeAsia that a new data file is available for processing via SFTP.
       operationId: lifeAsiaNotify
@@ -2441,7 +2441,7 @@ paths:
   /integration/lifeasia/last-file:
     get:
       tags:
-      - Integration
+      - Integration - Inbound
       summary: Get last LifeAsia file status
       description: Retrieves the processing status of the most recently received LifeAsia data file.
       operationId: getLastLifeAsiaFile
@@ -2472,7 +2472,7 @@ paths:
   /integration/export/oracle-financials:
     post:
       tags:
-      - Integration
+      - Integration - Outbound
       summary: Export to Oracle Financials
       description: Generates and exports a CSV file of approved incentive results for import into Oracle Financials ERP system.
       operationId: exportOracleFinancials
@@ -2530,7 +2530,7 @@ paths:
   /integration/status:
     get:
       tags:
-      - Integration
+      - Integration - Status
       summary: Get integration health status
       description: Retrieves the health and connectivity status of all integrated systems including LifeAsia, Penta, hierarchy
         sync, and outbound exports.
@@ -2562,7 +2562,7 @@ paths:
   /integration/file-log:
     get:
       tags:
-      - Integration
+      - Integration - Status
       summary: Get file processing log
       description: Retrieves a log of all files processed through the integration layer, including row counts and error details.
       operationId: getFileLog
@@ -2603,7 +2603,7 @@ paths:
   /integration/audit-log:
     get:
       tags:
-      - Integration
+      - Integration - Status
       summary: Get integration audit log
       description: Retrieves an audit trail of all integration events, including data receipts, processing runs, and errors.
       operationId: getAuditLog
@@ -2650,7 +2650,7 @@ paths:
   /integration/failed-records:
     get:
       tags:
-      - Integration
+      - Integration - Status
       summary: Get failed staging records
       description: Retrieves records that failed validation during the staging process. These can be reviewed, corrected,
         or skipped.
@@ -2718,7 +2718,7 @@ paths:
   /integration/failed-records/{id}/skip:
     post:
       tags:
-      - Integration
+      - Integration - Status
       summary: Skip a failed record
       description: Marks a failed staging record as skipped so it will not be retried during reprocessing.
       operationId: skipFailedRecord
@@ -2775,7 +2775,7 @@ paths:
   /integration/trigger/sftp-poll:
     post:
       tags:
-      - Integration
+      - Integration - Status
       summary: Trigger SFTP poll
       description: Manually triggers an SFTP poll to check for new data files from LifeAsia and other integrated systems.
       operationId: triggerSftpPoll
@@ -2814,7 +2814,7 @@ paths:
   /integration/trigger/hierarchy-sync:
     post:
       tags:
-      - Integration
+      - Integration - Status
       summary: Trigger hierarchy sync
       description: Manually triggers a synchronization of the agent hierarchy from the source HR system.
       operationId: triggerHierarchySync
@@ -2853,7 +2853,7 @@ paths:
   /integration/trigger/reprocess:
     post:
       tags:
-      - Integration
+      - Integration - Status
       summary: Trigger reprocessing of failed records
       description: Manually triggers reprocessing of all non-skipped failed staging records.
       operationId: triggerReprocess
@@ -2951,7 +2951,7 @@ paths:
       - Agents
       summary: Bulk upload agents
       description: Uploads multiple agent records in a single request for bulk registration.
-      operationId: uploadAgents
+      operationId: bulkUploadAgents
       security: *id001
       requestBody:
         required: true
@@ -3231,7 +3231,7 @@ paths:
       - Incentive Rates
       summary: Bulk upload incentive rates
       description: Uploads multiple incentive rate configurations in a single request.
-      operationId: uploadIncentiveRates
+      operationId: bulkUploadIncentiveRates
       security: *id001
       requestBody:
         required: true
@@ -3371,7 +3371,7 @@ paths:
       - Policy Transactions
       summary: Bulk upload policy transactions
       description: Uploads multiple policy transaction records in a single request.
-      operationId: uploadPolicyTransactions
+      operationId: bulkUploadPolicyTransactions
       security: *id001
       requestBody:
         required: true
@@ -3762,7 +3762,7 @@ paths:
   /derived-variables:
     get:
       tags:
-      - Calculations
+      - Derived Variables
       summary: List derived variables
       description: Retrieves all derived variable definitions used in incentive calculation formulas.
       operationId: listDerivedVariables
@@ -3794,7 +3794,7 @@ paths:
                 error: Internal server error
     post:
       tags:
-      - Calculations
+      - Derived Variables
       summary: Create a derived variable
       description: Creates a new derived variable with a formula expression. Derived variables can reference base performance
         fields and other variables.
@@ -4730,7 +4730,6 @@ components:
           example: ACTIVE
         parent_agent_id:
           type: integer
-          example: null
         hierarchy_path:
           type: string
           example: /1/
@@ -5455,7 +5454,6 @@ components:
         disqualification_reason:
           type: string
           nullable: true
-          example: null
         calc_breakdown:
           type: object
           description: Detailed calculation breakdown JSON
@@ -5479,12 +5477,10 @@ components:
         approved_by:
           type: integer
           nullable: true
-          example: null
         approved_at:
           type: string
           format: date-time
           nullable: true
-          example: null
     LeaderboardResponse:
       type: object
       properties:

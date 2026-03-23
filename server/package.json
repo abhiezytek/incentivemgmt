@@ -19,6 +19,8 @@
     "node-cron": "^4.2.1",
     "pg": "^8.13.3",
     "pg-copy-streams": "^7.0.0",
-    "ssh2-sftp-client": "^12.1.0"
+    "ssh2-sftp-client": "^12.1.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }
