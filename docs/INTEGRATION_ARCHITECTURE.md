@@ -140,12 +140,12 @@
 | **System**       | Internal Hierarchy System (built in-house)                |
 | **Role**         | Agent master data and organizational structure             |
 | **Connection**   | REST API                                                  |
-| **Frequency**    | Daily sync at 2:00 AM                                     |
+| **Frequency**    | Daily sync at 2:30 AM IST                                |
 | **Data**         | Agent master records, reporting hierarchy, org structure   |
 | **Auth**         | JWT Bearer token                                          |
 
 **Integration Flow:**
-1. A scheduled job runs at 2:00 AM daily.
+1. A scheduled job runs at 2:30 AM IST daily.
 2. The system calls the Hierarchy REST API to fetch the full agent master and hierarchy.
 3. Agent records are upserted into `ins_agents`.
 4. Reporting relationships and org structure are updated in the hierarchy tables.
@@ -318,7 +318,7 @@
 | Life Asia CSV ingestion       | Daily, nightly window   | Cron / batch  |
 | Penta real-time API           | Continuous               | Event-driven  |
 | Penta CSV reconciliation      | Daily, after API window | Cron / batch  |
-| Hierarchy sync                | Daily at 2:00 AM        | Cron          |
+| Hierarchy sync                | Daily at 2:30 AM IST    | Cron          |
 | SAP payment file generation   | On-demand               | Manual (UI)   |
 | Oracle payment file generation| On-demand               | Manual (UI)   |
 | Persistency data upload       | Monthly                 | Manual (UI)   |
