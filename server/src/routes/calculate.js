@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db/pool.js';
 import { calculateIncentive } from '../engine/calculateIncentive.js';
 import { calculateAgentIncentive } from '../engine/insuranceCalcEngine.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 
@@ -82,7 +83,7 @@ router.post('/run', async (req, res) => {
   try {
     const { programId, periodStart, periodEnd } = req.body;
     if (!programId || !periodStart || !periodEnd) {
-      return res.status(400).json({ error: 'programId, periodStart, and periodEnd are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'programId, periodStart, periodEnd' }));
     }
 
     // Look up the program's channel
@@ -91,7 +92,7 @@ router.post('/run', async (req, res) => {
       [programId]
     );
     if (!program) {
-      return res.status(404).json({ error: 'Program not found' });
+      return res.status(404).json(apiError('VAL_006', { field: 'programId' }));
     }
 
     // Fetch all active agents in that channel
@@ -207,12 +208,12 @@ router.get('/results', async (req, res) => {
   try {
     const { program_id, period } = req.query;
     if (!program_id || !period) {
-      return res.status(400).json({ error: 'program_id and period (YYYY-MM) are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'program_id, period' }));
     }
 
     const [year, month] = period.split('-').map(Number);
     if (!year || !month || month < 1 || month > 12) {
-      return res.status(400).json({ error: 'period must be YYYY-MM' });
+      return res.status(ERRORS.VAL_002.status).json(apiError('VAL_002', { field: 'period', expected: 'YYYY-MM' }));
     }
     const periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
 
@@ -319,7 +320,7 @@ router.post('/:programId/:userId/:period', async (req, res) => {
     // Derive period window from YYYY-MM
     const [year, month] = period.split('-').map(Number);
     if (!year || !month || month < 1 || month > 12) {
-      return res.status(400).json({ error: 'period must be YYYY-MM' });
+      return res.status(ERRORS.VAL_002.status).json(apiError('VAL_002', { field: 'period', expected: 'YYYY-MM' }));
     }
     const periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
     const periodEnd = new Date(year, month, 0).toISOString().slice(0, 10); // last day

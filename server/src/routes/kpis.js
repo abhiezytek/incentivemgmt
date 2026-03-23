@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { findAll, findById, insertRow, updateRow, deleteRow } from '../db/queryHelper.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 const KPI_TABLE = 'kpi_definitions';
@@ -162,7 +163,7 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const kpi = await findById(KPI_TABLE, req.params.id);
-    if (!kpi) return res.status(404).json({ error: 'KPI not found' });
+    if (!kpi) return res.status(404).json(apiError('VAL_006', { field: 'kpi' }));
     kpi.milestones = await findAll(MILESTONE_TABLE, { kpi_id: req.params.id }, 'sort_order');
     res.json(kpi);
   } catch (err) {
@@ -351,7 +352,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const row = await updateRow(KPI_TABLE, req.params.id, req.body);
-    if (!row) return res.status(404).json({ error: 'KPI not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'kpi' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -416,7 +417,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const row = await deleteRow(KPI_TABLE, req.params.id);
-    if (!row) return res.status(404).json({ error: 'KPI not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'kpi' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -682,7 +683,7 @@ router.post('/:kpiId/milestones', async (req, res) => {
 router.put('/:kpiId/milestones/:milestoneId', async (req, res) => {
   try {
     const row = await updateRow(MILESTONE_TABLE, req.params.milestoneId, req.body);
-    if (!row) return res.status(404).json({ error: 'Milestone not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'milestone' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -754,7 +755,7 @@ router.put('/:kpiId/milestones/:milestoneId', async (req, res) => {
 router.delete('/:kpiId/milestones/:milestoneId', async (req, res) => {
   try {
     const row = await deleteRow(MILESTONE_TABLE, req.params.milestoneId);
-    if (!row) return res.status(404).json({ error: 'Milestone not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'milestone' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });

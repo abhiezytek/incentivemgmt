@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { query } from '../../db/pool.js';
+import { ERRORS, apiError } from '../../utils/errorCodes.js';
 
 const router = Router();
 
@@ -139,7 +140,7 @@ router.post('/oracle-financials', async (req, res) => {
 
     // --- Validation ---
     if (!programId || !periodStart) {
-      return res.status(400).json({ error: 'programId and periodStart are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'programId, periodStart' }));
     }
 
     // --- Fetch approved results with agent/channel info ---

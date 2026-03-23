@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/pool.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 
@@ -121,7 +122,7 @@ router.get('/', async (req, res) => {
     const { programId, period, channel, region } = req.query;
 
     if (!programId || !period) {
-      return res.status(400).json({ error: 'programId and period are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'programId, period' }));
     }
 
     const agents = await query(

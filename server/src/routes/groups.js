@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { findAll, findById, insertRow, updateRow, deleteRow } from '../db/queryHelper.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 const GROUP_TABLE = 'user_groups';
@@ -21,7 +22,7 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const group = await findById(GROUP_TABLE, req.params.id);
-    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (!group) return res.status(404).json(apiError('VAL_006', { field: 'group' }));
     group.members = await findAll(MEMBER_TABLE, { group_id: req.params.id });
     res.json(group);
   } catch (err) {
@@ -43,7 +44,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const row = await updateRow(GROUP_TABLE, req.params.id, req.body);
-    if (!row) return res.status(404).json({ error: 'Group not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'group' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -54,7 +55,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const row = await deleteRow(GROUP_TABLE, req.params.id);
-    if (!row) return res.status(404).json({ error: 'Group not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'group' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -87,7 +88,7 @@ router.post('/:groupId/members', async (req, res) => {
 router.put('/:groupId/members/:memberId', async (req, res) => {
   try {
     const row = await updateRow(MEMBER_TABLE, req.params.memberId, req.body);
-    if (!row) return res.status(404).json({ error: 'Member not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'member' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -98,7 +99,7 @@ router.put('/:groupId/members/:memberId', async (req, res) => {
 router.delete('/:groupId/members/:memberId', async (req, res) => {
   try {
     const row = await deleteRow(MEMBER_TABLE, req.params.memberId);
-    if (!row) return res.status(404).json({ error: 'Member not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'member' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });

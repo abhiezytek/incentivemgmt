@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { query } from '../../db/pool.js';
+import { ERRORS, apiError } from '../../utils/errorCodes.js';
 
 const router = Router();
 
@@ -163,7 +164,7 @@ router.post('/policy-data', async (req, res) => {
     const { records } = req.body;
 
     if (!Array.isArray(records) || records.length === 0) {
-      return res.status(400).json({ error: 'records array is required and must not be empty' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { field: 'records' }));
     }
 
     const batchId = `PENTA_${Date.now()}`;

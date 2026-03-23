@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/pool.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 
@@ -172,7 +173,7 @@ router.get('/summary', async (req, res) => {
   try {
     const { programId, periodStart } = req.query;
     if (!programId || !periodStart) {
-      return res.status(400).json({ error: 'programId and periodStart are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'programId, periodStart' }));
     }
 
     const rows = await query(
@@ -439,7 +440,7 @@ router.post('/bulk-approve', async (req, res) => {
     }
 
     if (!programId || !periodStart) {
-      return res.status(400).json({ error: 'programId and periodStart are required when ids not provided' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'programId, periodStart' }));
     }
 
     const skippedRows = await query(
@@ -531,7 +532,7 @@ router.post('/initiate-payment', async (req, res) => {
   try {
     const { ids, paymentReference, paidBy } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ error: 'ids array is required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { field: 'ids' }));
     }
 
     const rows = await query(
@@ -649,7 +650,7 @@ router.post('/mark-paid', async (req, res) => {
         [programId, periodStart]
       );
     } else {
-      return res.status(400).json({ error: 'ids or (programId + periodStart) required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'ids or programId + periodStart' }));
     }
 
     if (rows.length > 0) {

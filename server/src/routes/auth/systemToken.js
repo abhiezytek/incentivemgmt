@@ -2,6 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { query } from '../../db/pool.js';
+import { ERRORS, apiError } from '../../utils/errorCodes.js';
 
 const router = Router();
 
@@ -85,7 +86,7 @@ router.post('/system-token', async (req, res) => {
     const { client_id, client_secret } = req.body;
 
     if (!client_id || !client_secret) {
-      return res.status(400).json({ error: 'client_id and client_secret are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'client_id, client_secret' }));
     }
 
     // 1. Lookup client
@@ -95,13 +96,13 @@ router.post('/system-token', async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(401).json({ error: 'INVALID_CREDENTIALS', message: 'Invalid client_id or client_secret' });
+      return res.status(ERRORS.AUTH_005.status).json(apiError('AUTH_005'));
     }
 
     const client = rows[0];
 
     if (!client.is_active) {
-      return res.status(401).json({ error: 'CLIENT_DISABLED', message: 'Client account is deactivated' });
+      return res.status(ERRORS.AUTH_006.status).json(apiError('AUTH_006'));
     }
 
     // 2. Verify secret

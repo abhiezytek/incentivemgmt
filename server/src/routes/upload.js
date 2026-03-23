@@ -3,6 +3,7 @@ import multer from 'multer';
 import { parseCSV } from '../utils/csvParser.js';
 import { bulkInsertTyped } from '../utils/bulkInsert.js';
 import { query } from '../db/pool.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -72,7 +73,7 @@ router.post('/policy-transactions', upload.single('file'), async (req, res) => {
     const REQUIRED = ['policy_number','agent_code','product_code','transaction_type',
                       'premium_amount','annualized_premium','paid_date'];
     const err = validateColumns(rows, REQUIRED);
-    if (err) return res.status(400).json({ error: err });
+    if (err) return res.status(ERRORS.VAL_007.status).json(apiError('VAL_007', { message: err }));
 
     // Pre-fetch lookup maps
     const channelRows = await query(`SELECT id, name FROM channels`);
@@ -172,7 +173,7 @@ router.post('/agents', upload.single('file'), async (req, res) => {
     const rows = await parseCSV(req.file.buffer);
     const REQUIRED = ['agent_code','agent_name','channel_code','region_code','hierarchy_level'];
     const err = validateColumns(rows, REQUIRED);
-    if (err) return res.status(400).json({ error: err });
+    if (err) return res.status(ERRORS.VAL_007.status).json(apiError('VAL_007', { message: err }));
 
     // Pre-fetch lookup maps
     const channelRows = await query(`SELECT id, name FROM channels`);
@@ -287,7 +288,7 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
     const REQUIRED = ['agent_code','persistency_month','period_start','period_end',
                       'policies_due','policies_renewed'];
     const err = validateColumns(rows, REQUIRED);
-    if (err) return res.status(400).json({ error: err });
+    if (err) return res.status(ERRORS.VAL_007.status).json(apiError('VAL_007', { message: err }));
 
     const mapped = rows.map(r => [
       r.agent_code, programId, r.persistency_month,

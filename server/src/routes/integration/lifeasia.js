@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool, { query } from '../../db/pool.js';
+import { ERRORS, apiError } from '../../utils/errorCodes.js';
 
 const router = Router();
 
@@ -73,7 +74,7 @@ router.post('/notify', async (req, res) => {
     const { file_name, file_type, record_count } = req.body;
 
     if (!file_name) {
-      return res.status(400).json({ error: 'file_name is required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { field: 'file_name' }));
     }
 
     const durationMs = Date.now() - start;

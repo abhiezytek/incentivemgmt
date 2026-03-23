@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { findAll, findById, insertRow, updateRow, deleteRow } from '../db/queryHelper.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 const TABLE = 'incentive_programs';
@@ -138,7 +139,7 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const row = await findById(TABLE, req.params.id);
-    if (!row) return res.status(404).json({ error: 'Program not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'program' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -331,7 +332,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const row = await updateRow(TABLE, req.params.id, req.body);
-    if (!row) return res.status(404).json({ error: 'Program not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'program' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -396,7 +397,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const row = await deleteRow(TABLE, req.params.id);
-    if (!row) return res.status(404).json({ error: 'Program not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'program' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });

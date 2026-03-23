@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { findAll, findById, insertRow, updateRow, deleteRow } from '../db/queryHelper.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 const RULE_TABLE = 'payout_rules';
@@ -110,7 +111,7 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const rule = await findById(RULE_TABLE, req.params.id);
-    if (!rule) return res.status(404).json({ error: 'Payout rule not found' });
+    if (!rule) return res.status(404).json(apiError('VAL_006', { field: 'payout_rule' }));
     rule.slabs = await findAll(SLAB_TABLE, { payout_rule_id: req.params.id }, 'sort_order');
     res.json(rule);
   } catch (err) {
@@ -244,7 +245,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const row = await updateRow(RULE_TABLE, req.params.id, req.body);
-    if (!row) return res.status(404).json({ error: 'Payout rule not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'payout_rule' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -296,7 +297,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const row = await deleteRow(RULE_TABLE, req.params.id);
-    if (!row) return res.status(404).json({ error: 'Payout rule not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'payout_rule' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -489,7 +490,7 @@ router.post('/:ruleId/slabs', async (req, res) => {
 router.put('/:ruleId/slabs/:slabId', async (req, res) => {
   try {
     const row = await updateRow(SLAB_TABLE, req.params.slabId, req.body);
-    if (!row) return res.status(404).json({ error: 'Slab not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'slab' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -548,7 +549,7 @@ router.put('/:ruleId/slabs/:slabId', async (req, res) => {
 router.delete('/:ruleId/slabs/:slabId', async (req, res) => {
   try {
     const row = await deleteRow(SLAB_TABLE, req.params.slabId);
-    if (!row) return res.status(404).json({ error: 'Slab not found' });
+    if (!row) return res.status(404).json(apiError('VAL_006', { field: 'slab' }));
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
