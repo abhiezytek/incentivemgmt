@@ -56,27 +56,51 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/api/upload',             uploadRouter);
-app.use('/api/programs',           programsRouter);
-app.use('/api/kpis',               kpisRouter);
-app.use('/api/payouts',            payoutsRouter);
-app.use('/api/calculate',          calculateRouter);
-app.use('/api/groups',             groupsRouter);
-app.use('/api/incentive-results',  incentiveResultsRouter);
-app.use('/api/leaderboard',        leaderboardRouter);
-app.use('/api/dashboard',          dashboardRouter);
-app.use('/api/performance',        performanceRouter);
-app.use('/api/derived-variables',  derivedVariablesRouter);
+// --- v1 routes (stable) ---
+app.use('/api/v1/upload',              uploadRouter);
+app.use('/api/v1/programs',            programsRouter);
+app.use('/api/v1/kpis',                kpisRouter);
+app.use('/api/v1/payouts',             payoutsRouter);
+app.use('/api/v1/calculate',           calculateRouter);
+app.use('/api/v1/groups',              groupsRouter);
+app.use('/api/v1/incentive-results',   incentiveResultsRouter);
+app.use('/api/v1/leaderboard',         leaderboardRouter);
+app.use('/api/v1/dashboard',           dashboardRouter);
+app.use('/api/v1/performance',         performanceRouter);
+app.use('/api/v1/derived-variables',   derivedVariablesRouter);
+app.use('/api/v1/policy-transactions', policyTransactionsRouter);
+app.use('/api/v1/agents',              agentsRouter);
+app.use('/api/v1/persistency-data',    persistencyDataRouter);
+app.use('/api/v1/products',            productsRouter);
+app.use('/api/v1/incentive-rates',     incentiveRatesRouter);
+app.use('/api/v1/auth',                systemTokenRouter);
+app.use('/api/v1/integration/penta',   systemAuth, pentaRouter);
+app.use('/api/v1/integration/lifeasia', systemAuth, lifeAsiaRouter);
+app.use('/api/v1/integration/export',  userAuth,   exportRouter);
+app.use('/api/v1/integration',         userAuth,   integrationStatus);
+
+// --- Unversioned aliases (default to v1 for backward compatibility) ---
+app.use('/api/upload',              uploadRouter);
+app.use('/api/programs',            programsRouter);
+app.use('/api/kpis',                kpisRouter);
+app.use('/api/payouts',             payoutsRouter);
+app.use('/api/calculate',           calculateRouter);
+app.use('/api/groups',              groupsRouter);
+app.use('/api/incentive-results',   incentiveResultsRouter);
+app.use('/api/leaderboard',         leaderboardRouter);
+app.use('/api/dashboard',           dashboardRouter);
+app.use('/api/performance',         performanceRouter);
+app.use('/api/derived-variables',   derivedVariablesRouter);
 app.use('/api/policy-transactions', policyTransactionsRouter);
-app.use('/api/agents',             agentsRouter);
-app.use('/api/persistency-data',   persistencyDataRouter);
-app.use('/api/products',           productsRouter);
-app.use('/api/incentive-rates',    incentiveRatesRouter);
-app.use('/api/auth',                         systemTokenRouter);
-app.use('/api/integration/penta',  systemAuth, pentaRouter);
+app.use('/api/agents',              agentsRouter);
+app.use('/api/persistency-data',    persistencyDataRouter);
+app.use('/api/products',            productsRouter);
+app.use('/api/incentive-rates',     incentiveRatesRouter);
+app.use('/api/auth',                systemTokenRouter);
+app.use('/api/integration/penta',   systemAuth, pentaRouter);
 app.use('/api/integration/lifeasia', systemAuth, lifeAsiaRouter);
-app.use('/api/integration/export', userAuth,   exportRouter);
-app.use('/api/integration',        userAuth,   integrationStatus);
+app.use('/api/integration/export',  userAuth,   exportRouter);
+app.use('/api/integration',         userAuth,   integrationStatus);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

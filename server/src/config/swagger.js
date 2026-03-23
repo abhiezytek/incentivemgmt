@@ -18,8 +18,9 @@ const options = {
       },
     },
     servers: [
-      { url: 'http://localhost:5000/api', description: 'Development' },
-      { url: 'https://api.incentive.yourdomain.com/api', description: 'Production' },
+      { url: 'http://localhost:5000/api/v1', description: 'Development (v1)' },
+      { url: 'http://localhost:5000/api', description: 'Development (unversioned)' },
+      { url: 'https://api.incentive.yourdomain.com/api/v1', description: 'Production (v1)' },
     ],
     components: {
       securitySchemes: {
