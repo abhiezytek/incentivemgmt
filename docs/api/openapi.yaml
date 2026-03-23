@@ -1,0 +1,5851 @@
+openapi: 3.0.3
+info:
+  title: Insurance Incentive Management System API
+  description: Comprehensive API for managing insurance agent incentive programs, KPI tracking, payout calculations, and integration
+    with policy administration systems.
+  version: 1.0.0
+  contact:
+    name: Incentive Management Team
+    email: incentives@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+- url: /api
+  description: API base path
+security:
+- BearerAuth: []
+tags:
+- name: Authentication
+  description: Authentication and token management
+- name: Programs
+  description: Incentive program management
+- name: KPI Rules
+  description: KPI definitions, milestones, and threshold configuration
+- name: Payout Rules
+  description: Payout calculation rules and slab configurations
+- name: Data Upload
+  description: CSV file uploads for bulk data ingestion
+- name: Calculations
+  description: Incentive calculation engine
+- name: Incentive Results
+  description: Incentive result management and approval workflows
+- name: Leaderboard
+  description: Agent performance leaderboards
+- name: Dashboard
+  description: Executive dashboard summaries
+- name: Integration - Inbound
+  description: Inbound integrations from policy administration systems (Penta, LifeAsia)
+- name: Integration - Outbound
+  description: Outbound data exports to financial systems
+- name: Integration - Status
+  description: Integration monitoring, file logs, audit trails, and manual triggers
+- name: Agents
+  description: Insurance agent management
+- name: Products
+  description: Insurance product catalog
+- name: Incentive Rates
+  description: Product incentive rate configuration
+- name: Policy Transactions
+  description: Policy transaction records
+- name: Persistency Data
+  description: Policy persistency tracking data
+- name: Performance
+  description: Agent performance input data
+- name: Derived Variables
+  description: Formula-driven derived calculation variables
+- name: Groups
+  description: User groups and team member management
+paths:
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health check
+      description: Returns the health status of the API server. No authentication required.
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+              example:
+                status: ok
+  /auth/system-token:
+    post:
+      tags:
+      - Authentication
+      summary: Generate system authentication token
+      description: Authenticates a system client using client credentials and returns a JWT token for subsequent API calls.
+      operationId: createSystemToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - client_id
+              - client_secret
+              properties:
+                client_id:
+                  type: string
+                  example: incentive-portal
+                client_secret:
+                  type: string
+                  example: s3cr3t-k3y-v4lue
+      responses:
+        '201':
+          description: Token created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expires_at:
+                    type: string
+                    format: date-time
+                    example: '2025-04-02T09:30:00Z'
+        '400':
+          description: 'Missing required fields: client_id and client_secret'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Missing required fields: client_id and client_secret'
+        '401':
+          description: Invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid client credentials
+        '500':
+          description: JWT configuration error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: JWT configuration error
+  /programs:
+    get:
+      tags:
+      - Programs
+      summary: List all incentive programs
+      description: Retrieves a list of all incentive programs configured in the system.
+      operationId: listPrograms
+      security: &id001
+      - BearerAuth: []
+      responses:
+        '200':
+          description: List of programs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Program'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Programs
+      summary: Create a new incentive program
+      description: Creates a new incentive program with the provided configuration. The program starts in DRAFT status by
+        default.
+      operationId: createProgram
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgramInput'
+      responses:
+        '201':
+          description: Program created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /programs/{id}:
+    get:
+      tags:
+      - Programs
+      summary: Get a specific incentive program
+      description: Retrieves detailed information about a single incentive program by its ID.
+      operationId: getProgram
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Program details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    put:
+      tags:
+      - Programs
+      summary: Update an incentive program
+      description: Updates an existing incentive program with new values. Only provided fields are updated.
+      operationId: updateProgram
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgramInput'
+      responses:
+        '200':
+          description: Program updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - Programs
+      summary: Delete an incentive program
+      description: Deletes an incentive program. This will also remove all associated KPIs, payout rules, and results.
+      operationId: deleteProgram
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Deleted program
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpis:
+    get:
+      tags:
+      - KPI Rules
+      summary: List all KPI definitions
+      description: Retrieves all KPI definitions across all programs.
+      operationId: listKpis
+      security: *id001
+      responses:
+        '200':
+          description: List of KPI definitions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KpiDefinition'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - KPI Rules
+      summary: Create a new KPI definition
+      description: Creates a new KPI definition to track agent performance metrics such as APE achievement, policy count,
+        or persistency rates.
+      operationId: createKpi
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiDefinitionInput'
+      responses:
+        '201':
+          description: KPI definition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinition'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpis/{id}:
+    get:
+      tags:
+      - KPI Rules
+      summary: Get a KPI definition with milestones
+      description: Retrieves a single KPI definition by ID, including its associated milestones array.
+      operationId: getKpi
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: KPI definition with milestones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinition'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    put:
+      tags:
+      - KPI Rules
+      summary: Update a KPI definition
+      description: Updates an existing KPI definition with new configuration values.
+      operationId: updateKpi
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiDefinitionInput'
+      responses:
+        '200':
+          description: KPI definition updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinition'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - KPI Rules
+      summary: Delete a KPI definition
+      description: Deletes a KPI definition and its associated milestones.
+      operationId: deleteKpi
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Deleted KPI definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinition'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpis/{kpiId}/milestones:
+    get:
+      tags:
+      - KPI Rules
+      summary: List milestones for a KPI
+      description: Retrieves all milestone thresholds defined for a specific KPI definition.
+      operationId: listKpiMilestones
+      security: *id001
+      parameters:
+      - name: kpiId
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: List of milestones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KpiMilestone'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - KPI Rules
+      summary: Create a milestone for a KPI
+      description: Adds a new milestone threshold to a KPI definition. Milestones define performance bands (e.g., 0-50%, 50-80%,
+        80-100%).
+      operationId: createKpiMilestone
+      security: *id001
+      parameters:
+      - name: kpiId
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiMilestoneInput'
+      responses:
+        '201':
+          description: Milestone created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiMilestone'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpis/{kpiId}/milestones/{milestoneId}:
+    put:
+      tags:
+      - KPI Rules
+      summary: Update a KPI milestone
+      description: Updates an existing milestone threshold for a KPI definition.
+      operationId: updateKpiMilestone
+      security: *id001
+      parameters:
+      - name: kpiId
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      - name: milestoneId
+        in: path
+        required: true
+        description: Milestone ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiMilestoneInput'
+      responses:
+        '200':
+          description: Milestone updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiMilestone'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - KPI Rules
+      summary: Delete a KPI milestone
+      description: Removes a milestone threshold from a KPI definition.
+      operationId: deleteKpiMilestone
+      security: *id001
+      parameters:
+      - name: kpiId
+        in: path
+        required: true
+        description: KPI definition ID
+        schema:
+          type: integer
+      - name: milestoneId
+        in: path
+        required: true
+        description: Milestone ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Deleted milestone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiMilestone'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /payouts:
+    get:
+      tags:
+      - Payout Rules
+      summary: List all payout rules
+      description: Retrieves all payout rules across all programs.
+      operationId: listPayoutRules
+      security: *id001
+      responses:
+        '200':
+          description: List of payout rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayoutRule'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Payout Rules
+      summary: Create a new payout rule
+      description: Creates a new payout rule that defines how incentives are calculated for a program. Rules can be VARIABLE,
+        FIXED, or PERCENTAGE based.
+      operationId: createPayoutRule
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutRuleInput'
+      responses:
+        '201':
+          description: Payout rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutRule'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /payouts/{id}:
+    get:
+      tags:
+      - Payout Rules
+      summary: Get a payout rule with slabs
+      description: Retrieves a single payout rule by ID, including its associated slab configurations.
+      operationId: getPayoutRule
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Payout rule with slabs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutRule'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    put:
+      tags:
+      - Payout Rules
+      summary: Update a payout rule
+      description: Updates an existing payout rule configuration.
+      operationId: updatePayoutRule
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutRuleInput'
+      responses:
+        '200':
+          description: Payout rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutRule'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - Payout Rules
+      summary: Delete a payout rule
+      description: Deletes a payout rule and its associated slabs.
+      operationId: deletePayoutRule
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Deleted payout rule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutRule'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /payouts/{ruleId}/slabs:
+    get:
+      tags:
+      - Payout Rules
+      summary: List slabs for a payout rule
+      description: Retrieves all slab configurations for a specific payout rule.
+      operationId: listPayoutSlabs
+      security: *id001
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: List of payout slabs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayoutSlab'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Payout Rules
+      summary: Create a payout slab
+      description: Adds a new slab to a payout rule. Slabs define incentive tiers based on KPI achievement levels.
+      operationId: createPayoutSlab
+      security: *id001
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutSlabInput'
+      responses:
+        '201':
+          description: Payout slab created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutSlab'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /payouts/{ruleId}/slabs/{slabId}:
+    put:
+      tags:
+      - Payout Rules
+      summary: Update a payout slab
+      description: Updates an existing payout slab configuration.
+      operationId: updatePayoutSlab
+      security: *id001
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      - name: slabId
+        in: path
+        required: true
+        description: Payout slab ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutSlabInput'
+      responses:
+        '200':
+          description: Payout slab updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutSlab'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - Payout Rules
+      summary: Delete a payout slab
+      description: Removes a slab configuration from a payout rule.
+      operationId: deletePayoutSlab
+      security: *id001
+      parameters:
+      - name: ruleId
+        in: path
+        required: true
+        description: Payout rule ID
+        schema:
+          type: integer
+      - name: slabId
+        in: path
+        required: true
+        description: Payout slab ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Deleted payout slab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutSlab'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /upload/policy-transactions:
+    post:
+      tags:
+      - Data Upload
+      summary: Upload policy transactions CSV
+      description: Uploads a CSV file containing policy transaction records. Duplicate policy numbers within the same period
+        are skipped.
+      operationId: uploadPolicyTransactions
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file to upload
+      responses:
+        '200':
+          description: Upload processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  inserted:
+                    type: integer
+                  total:
+                    type: integer
+                  skipped:
+                    type: integer
+              example:
+                success: true
+                inserted: 4850
+                total: 5000
+                skipped: 150
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /upload/agents:
+    post:
+      tags:
+      - Data Upload
+      summary: Upload agents CSV
+      description: Uploads a CSV file containing insurance agent records for bulk registration.
+      operationId: uploadAgents
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file to upload
+      responses:
+        '200':
+          description: Upload processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  inserted:
+                    type: integer
+              example:
+                success: true
+                inserted: 120
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /upload/persistency:
+    post:
+      tags:
+      - Data Upload
+      summary: Upload persistency data CSV
+      description: Uploads a CSV file containing policy persistency data for 13th, 25th, 37th, 49th, and 61st month tracking.
+      operationId: uploadPersistency
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file to upload
+      responses:
+        '200':
+          description: Upload processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  inserted:
+                    type: integer
+              example:
+                success: true
+                inserted: 350
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /upload/incentive-rates:
+    post:
+      tags:
+      - Data Upload
+      summary: Upload incentive rates CSV
+      description: Uploads a CSV file containing product-level incentive rate configurations.
+      operationId: uploadIncentiveRates
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file to upload
+      responses:
+        '200':
+          description: Upload processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  inserted:
+                    type: integer
+              example:
+                success: true
+                inserted: 85
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /calculate/run:
+    post:
+      tags:
+      - Calculations
+      summary: Run incentive calculation engine
+      description: Triggers the incentive calculation engine for a specific program and period. Processes all eligible agents
+        and generates incentive results.
+      operationId: runCalculation
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculationRunRequest'
+      responses:
+        '200':
+          description: Calculation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculationRunResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /calculate/results:
+    get:
+      tags:
+      - Calculations
+      summary: Get calculation results
+      description: Retrieves incentive calculation results filtered by program and period.
+      operationId: getCalculationResults
+      security: *id001
+      parameters:
+      - name: program_id
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: period
+        in: query
+        required: false
+        description: Filter by period (YYYY-MM-DD)
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Calculation results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IncentiveResult'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /calculate/{programId}/{userId}/{period}:
+    post:
+      tags:
+      - Calculations
+      summary: Calculate incentive for a single agent
+      description: Runs the incentive calculation for a specific agent in a specific program and period. Returns the detailed
+        incentive breakdown.
+      operationId: calculateSingleAgent
+      security: *id001
+      parameters:
+      - name: programId
+        in: path
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      - name: userId
+        in: path
+        required: true
+        description: User/agent ID
+        schema:
+          type: integer
+      - name: period
+        in: path
+        required: true
+        description: Period date (YYYY-MM-DD)
+        schema:
+          type: string
+          format: date
+      responses:
+        '201':
+          description: Individual incentive calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncentiveResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results/stage-summary:
+    get:
+      tags:
+      - Incentive Results
+      summary: Get stage-wise result summary
+      description: Returns a summary of incentive results grouped by processing stage (DRAFT, APPROVED, INITIATED, PAID) with
+        counts and totals.
+      operationId: getIncentiveResultStageSummary
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: periodStart
+        in: query
+        required: false
+        description: Filter by period start date
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Stage summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StageSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results/summary:
+    get:
+      tags:
+      - Incentive Results
+      summary: Get channel-wise incentive summary
+      description: Returns incentive result summaries grouped by channel, including agent counts, total pools, and averages.
+      operationId: getIncentiveResultSummary
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      - name: periodStart
+        in: query
+        required: true
+        description: Period start date
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Channel summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChannelSummary'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results:
+    get:
+      tags:
+      - Incentive Results
+      summary: List incentive results
+      description: Retrieves incentive results with optional filters for program, period, channel, region, and status.
+      operationId: listIncentiveResults
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: periodStart
+        in: query
+        required: false
+        description: Filter by period start date
+        schema:
+          type: string
+      - name: channel
+        in: query
+        required: false
+        description: Filter by channel
+        schema:
+          type: string
+      - name: region
+        in: query
+        required: false
+        description: Filter by region
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by status
+        schema:
+          type: string
+          enum:
+          - DRAFT
+          - APPROVED
+          - INITIATED
+          - PAID
+      responses:
+        '200':
+          description: Incentive results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IncentiveResult'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results/bulk-approve:
+    post:
+      tags:
+      - Incentive Results
+      summary: Bulk approve incentive results
+      description: Approves multiple incentive results in bulk. Can filter by specific IDs or by program and period. Results
+        that fail persistency gate checks are skipped.
+      operationId: bulkApproveIncentiveResults
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Specific result IDs to approve
+                programId:
+                  type: integer
+                  description: Approve all DRAFT results for this program
+                periodStart:
+                  type: string
+                  format: date
+                  description: Approve all DRAFT results for this period
+                approvedBy:
+                  type: integer
+                  description: User ID of the approver
+            example:
+              programId: 1
+              periodStart: '2025-04-01'
+              approvedBy: 10
+      responses:
+        '200':
+          description: Bulk approval completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  approved:
+                    type: integer
+                  skipped_gate_failed:
+                    type: integer
+                  approvedCount:
+                    type: integer
+              example:
+                approved: 145
+                skipped_gate_failed: 7
+                approvedCount: 145
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results/initiate-payment:
+    post:
+      tags:
+      - Incentive Results
+      summary: Initiate payment for approved results
+      description: Moves approved incentive results to INITIATED status, indicating payment processing has begun.
+      operationId: initiatePayment
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - ids
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                paymentReference:
+                  type: string
+                paidBy:
+                  type: integer
+            example:
+              ids:
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+              paymentReference: PAY-2025-04-001
+              paidBy: 10
+      responses:
+        '200':
+          description: Payment initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+              example:
+                count: 5
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results/mark-paid:
+    post:
+      tags:
+      - Incentive Results
+      summary: Mark results as paid
+      description: Marks incentive results as PAID after payment confirmation is received from the financial system.
+      operationId: markResultsPaid
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                programId:
+                  type: integer
+                periodStart:
+                  type: string
+                  format: date
+                paidBy:
+                  type: integer
+            example:
+              ids:
+              - 1
+              - 2
+              - 3
+              paidBy: 10
+      responses:
+        '200':
+          description: Results marked as paid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paid:
+                    type: integer
+                  paidCount:
+                    type: integer
+              example:
+                paid: 3
+                paidCount: 3
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-results/{id}/approve:
+    post:
+      tags:
+      - Incentive Results
+      summary: Approve a single incentive result
+      description: Approves a single incentive result by ID, transitioning it from DRAFT to APPROVED status.
+      operationId: approveSingleResult
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Incentive result ID
+        schema:
+          type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approvedBy:
+                  type: integer
+                  description: User ID of the approver
+            example:
+              approvedBy: 10
+      responses:
+        '200':
+          description: Result approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  id:
+                    type: integer
+                  status:
+                    type: string
+              example:
+                success: true
+                id: 1
+                status: APPROVED
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /leaderboard:
+    get:
+      tags:
+      - Leaderboard
+      summary: Get agent leaderboard
+      description: Retrieves a ranked leaderboard of agents by total incentive earned for a specific program and period. Optionally
+        filtered by channel or region.
+      operationId: getLeaderboard
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      - name: period
+        in: query
+        required: true
+        description: Period date (YYYY-MM-DD)
+        schema:
+          type: string
+      - name: channel
+        in: query
+        required: false
+        description: Filter by channel
+        schema:
+          type: string
+      - name: region
+        in: query
+        required: false
+        description: Filter by region
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /dashboard/summary:
+    get:
+      tags:
+      - Dashboard
+      summary: Get executive dashboard summary
+      description: Retrieves a comprehensive dashboard summary including KPIs, channel breakdown, product mix, top agents,
+        program status, pipeline status, and recent activity.
+      operationId: getDashboardSummary
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: period
+        in: query
+        required: false
+        description: Filter by period
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/penta/heartbeat:
+    post:
+      tags:
+      - Integration - Inbound
+      summary: Penta system heartbeat
+      description: Heartbeat endpoint called by the Penta policy administration system to indicate connectivity. Used for
+        health monitoring of the integration.
+      operationId: pentaHeartbeat
+      security: *id001
+      responses:
+        '200':
+          description: Heartbeat acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+              example:
+                status: OK
+                timestamp: '2025-04-02T08:00:00Z'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/penta/policy-data:
+    post:
+      tags:
+      - Integration - Inbound
+      summary: Receive policy data from Penta
+      description: Receives a batch of policy transaction records from the Penta policy administration system. Records are
+        staged for validation before being imported.
+      operationId: receivePentaPolicyData
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - records
+              properties:
+                records:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      policy_number:
+                        type: string
+                      agent_code:
+                        type: string
+                      product_code:
+                        type: string
+                      premium_amount:
+                        type: number
+                      transaction_type:
+                        type: string
+                      issue_date:
+                        type: string
+                        format: date
+            example:
+              records:
+              - policy_number: POL-2025-000100
+                agent_code: AGT-2025-001
+                product_code: ULIP-GROWTH-01
+                premium_amount: 50000
+                transaction_type: NEW_BUSINESS
+                issue_date: '2025-04-01'
+      responses:
+        '200':
+          description: Policy data received and staged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  batch_id:
+                    type: string
+                  received:
+                    type: integer
+                  staged:
+                    type: integer
+              example:
+                success: true
+                batch_id: PENTA-20250402-001
+                received: 250
+                staged: 250
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/lifeasia/notify:
+    post:
+      tags:
+      - Integration - Inbound
+      summary: LifeAsia file notification
+      description: Receives a notification from LifeAsia that a new data file is available for processing via SFTP.
+      operationId: lifeAsiaNotify
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - file_name
+              properties:
+                file_name:
+                  type: string
+                file_type:
+                  type: string
+                record_count:
+                  type: integer
+            example:
+              file_name: LA_EXTRACT_20250401.csv
+              file_type: POLICY_TRANSACTION
+              record_count: 5000
+      responses:
+        '200':
+          description: Notification received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  file_name:
+                    type: string
+              example:
+                success: true
+                message: File notification received, polling scheduled
+                file_name: LA_EXTRACT_20250401.csv
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/lifeasia/last-file:
+    get:
+      tags:
+      - Integration - Inbound
+      summary: Get last LifeAsia file status
+      description: Retrieves the processing status of the most recently received LifeAsia data file.
+      operationId: getLastLifeAsiaFile
+      security: *id001
+      responses:
+        '200':
+          description: Last file status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileLogRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/export/oracle-financials:
+    post:
+      tags:
+      - Integration - Outbound
+      summary: Export to Oracle Financials
+      description: Generates and exports a CSV file of approved incentive results for import into Oracle Financials ERP system.
+      operationId: exportOracleFinancials
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - programId
+              - periodStart
+              properties:
+                programId:
+                  type: integer
+                periodStart:
+                  type: string
+                  format: date
+            example:
+              programId: 1
+              periodStart: '2025-04-01'
+      responses:
+        '200':
+          description: CSV export file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/status:
+    get:
+      tags:
+      - Integration - Status
+      summary: Get integration health status
+      description: Retrieves the health and connectivity status of all integrated systems including LifeAsia, Penta, hierarchy
+        sync, and outbound exports.
+      operationId: getIntegrationStatus
+      security: *id001
+      responses:
+        '200':
+          description: Integration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationStatus'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/file-log:
+    get:
+      tags:
+      - Integration - Status
+      summary: Get file processing log
+      description: Retrieves a log of all files processed through the integration layer, including row counts and error details.
+      operationId: getFileLog
+      security: *id001
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of records to return
+        schema:
+          type: integer
+          default: 50
+      responses:
+        '200':
+          description: File processing log
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileLogRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/audit-log:
+    get:
+      tags:
+      - Integration - Status
+      summary: Get integration audit log
+      description: Retrieves an audit trail of all integration events, including data receipts, processing runs, and errors.
+      operationId: getAuditLog
+      security: *id001
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of records to return
+        schema:
+          type: integer
+          default: 50
+      - name: source
+        in: query
+        required: false
+        description: Filter by source system
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/failed-records:
+    get:
+      tags:
+      - Integration - Status
+      summary: Get failed staging records
+      description: Retrieves records that failed validation during the staging process. These can be reviewed, corrected,
+        or skipped.
+      operationId: getFailedRecords
+      security: *id001
+      parameters:
+      - name: table
+        in: query
+        required: false
+        description: Filter by target table name
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of records to return
+        schema:
+          type: integer
+          default: 50
+      responses:
+        '200':
+          description: Failed staging records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    table_name:
+                      type: string
+                    raw_data:
+                      type: object
+                    error_message:
+                      type: string
+                    created_at:
+                      type: string
+                      format: date-time
+              example:
+              - id: 1
+                table_name: ins_policy_transactions
+                raw_data:
+                  policy_number: POL-BAD
+                  premium_amount: -100
+                error_message: premium_amount must be positive
+                created_at: '2025-04-02T01:03:00Z'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/failed-records/{id}/skip:
+    post:
+      tags:
+      - Integration - Status
+      summary: Skip a failed record
+      description: Marks a failed staging record as skipped so it will not be retried during reprocessing.
+      operationId: skipFailedRecord
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Failed record ID
+        schema:
+          type: integer
+      - name: table
+        in: query
+        required: false
+        description: Target table name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Record skipped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              example:
+                success: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/trigger/sftp-poll:
+    post:
+      tags:
+      - Integration - Status
+      summary: Trigger SFTP poll
+      description: Manually triggers an SFTP poll to check for new data files from LifeAsia and other integrated systems.
+      operationId: triggerSftpPoll
+      security: *id001
+      responses:
+        '200':
+          description: SFTP poll triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: SFTP poll initiated
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/trigger/hierarchy-sync:
+    post:
+      tags:
+      - Integration - Status
+      summary: Trigger hierarchy sync
+      description: Manually triggers a synchronization of the agent hierarchy from the source HR system.
+      operationId: triggerHierarchySync
+      security: *id001
+      responses:
+        '200':
+          description: Hierarchy sync triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: Hierarchy sync initiated
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /integration/trigger/reprocess:
+    post:
+      tags:
+      - Integration - Status
+      summary: Trigger reprocessing of failed records
+      description: Manually triggers reprocessing of all non-skipped failed staging records.
+      operationId: triggerReprocess
+      security: *id001
+      responses:
+        '200':
+          description: Reprocessing triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  reprocessed:
+                    type: integer
+              example:
+                success: true
+                reprocessed: 12
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /agents:
+    get:
+      tags:
+      - Agents
+      summary: List insurance agents
+      description: Retrieves a list of insurance agents with optional filters for channel, region, and status.
+      operationId: listAgents
+      security: *id001
+      parameters:
+      - name: channel_id
+        in: query
+        required: false
+        description: Filter by channel ID
+        schema:
+          type: integer
+      - name: region_id
+        in: query
+        required: false
+        description: Filter by region ID
+        schema:
+          type: integer
+      - name: status
+        in: query
+        required: false
+        description: Filter by agent status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          - SUSPENDED
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /agents/upload:
+    post:
+      tags:
+      - Agents
+      summary: Bulk upload agents
+      description: Uploads multiple agent records in a single request for bulk registration.
+      operationId: bulkUploadAgents
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rows
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AgentInput'
+            example:
+              rows:
+              - agent_code: AGT-2025-050
+                agent_name: Priya Sharma
+                channel_id: 1
+                region_id: 2
+                branch_code: DEL-003
+                license_number: IRDAI-LIC-99001
+                status: ACTIVE
+      responses:
+        '201':
+          description: Agents uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Agent'
+              example:
+                inserted: 1
+                rows:
+                - id: 50
+                  agent_code: AGT-2025-050
+                  agent_name: Priya Sharma
+                  channel_id: 1
+                  region_id: 2
+                  branch_code: DEL-003
+                  license_number: IRDAI-LIC-99001
+                  status: ACTIVE
+                  hierarchy_level: 1
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /products:
+    get:
+      tags:
+      - Products
+      summary: List insurance products
+      description: Retrieves the product catalog with optional filters for category, type, and active status.
+      operationId: listProducts
+      security: *id001
+      parameters:
+      - name: product_category
+        in: query
+        required: false
+        description: Filter by product category
+        schema:
+          type: string
+          enum:
+          - ULIP
+          - TERM
+          - TRAD
+          - ENDOWMENT
+          - HEALTH
+          - ANNUITY
+      - name: product_type
+        in: query
+        required: false
+        description: Filter by product type
+        schema:
+          type: string
+          enum:
+          - LINKED
+          - NON_LINKED
+          - PROTECTION
+      - name: is_active
+        in: query
+        required: false
+        description: Filter by active status
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /products/upload:
+    post:
+      tags:
+      - Products
+      summary: Bulk upload products
+      description: Uploads multiple product records in a single request for bulk catalog management.
+      operationId: uploadProducts
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rows
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ProductInput'
+            example:
+              rows:
+              - product_code: TERM-SHIELD-01
+                product_name: Shield Term Plan
+                product_category: TERM
+                product_type: PROTECTION
+                min_premium: 5000
+                min_sum_assured: 2500000
+                min_policy_term: 10
+                is_active: true
+      responses:
+        '201':
+          description: Products uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+              example:
+                inserted: 1
+                rows:
+                - id: 10
+                  product_code: TERM-SHIELD-01
+                  product_name: Shield Term Plan
+                  product_category: TERM
+                  product_type: PROTECTION
+                  min_premium: 5000
+                  min_sum_assured: 2500000
+                  min_policy_term: 10
+                  is_active: true
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-rates:
+    get:
+      tags:
+      - Incentive Rates
+      summary: List incentive rates
+      description: Retrieves incentive rate configurations with channel_name joined from the channels table. Filterable by
+        product, transaction type, and active status.
+      operationId: listIncentiveRates
+      security: *id001
+      parameters:
+      - name: product_code
+        in: query
+        required: false
+        description: Filter by product code
+        schema:
+          type: string
+      - name: transaction_type
+        in: query
+        required: false
+        description: Filter by transaction type
+        schema:
+          type: string
+          enum:
+          - NEW_BUSINESS
+          - RENEWAL
+      - name: is_active
+        in: query
+        required: false
+        description: Filter by active status
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: List of incentive rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IncentiveRate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /incentive-rates/upload:
+    post:
+      tags:
+      - Incentive Rates
+      summary: Bulk upload incentive rates
+      description: Uploads multiple incentive rate configurations in a single request.
+      operationId: bulkUploadIncentiveRates
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rows
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/IncentiveRateInput'
+            example:
+              rows:
+              - program_id: 1
+                product_code: ULIP-GROWTH-01
+                channel_id: 1
+                policy_year: 1
+                transaction_type: NEW_BUSINESS
+                rate_type: PERCENTAGE_OF_PREMIUM
+                incentive_rate: 15.5
+                min_premium_slab: 25000
+                max_premium_slab: 100000
+                effective_from: '2025-04-01'
+                is_active: true
+      responses:
+        '201':
+          description: Incentive rates uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IncentiveRate'
+              example:
+                inserted: 1
+                rows:
+                - id: 20
+                  program_id: 1
+                  product_code: ULIP-GROWTH-01
+                  channel_id: 1
+                  channel_name: Agency
+                  policy_year: 1
+                  transaction_type: NEW_BUSINESS
+                  rate_type: PERCENTAGE_OF_PREMIUM
+                  incentive_rate: 15.5
+                  min_premium_slab: 25000
+                  max_premium_slab: 100000
+                  effective_from: '2025-04-01'
+                  is_active: true
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /policy-transactions:
+    get:
+      tags:
+      - Policy Transactions
+      summary: List policy transactions
+      description: Retrieves policy transaction records with optional filters for agent, date range.
+      operationId: listPolicyTransactions
+      security: *id001
+      parameters:
+      - name: agent_code
+        in: query
+        required: false
+        description: Filter by agent code
+        schema:
+          type: string
+      - name: period_start
+        in: query
+        required: false
+        description: Filter from date (inclusive)
+        schema:
+          type: string
+      - name: period_end
+        in: query
+        required: false
+        description: Filter to date (inclusive)
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of policy transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PolicyTransaction'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /policy-transactions/upload:
+    post:
+      tags:
+      - Policy Transactions
+      summary: Bulk upload policy transactions
+      description: Uploads multiple policy transaction records in a single request.
+      operationId: bulkUploadPolicyTransactions
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rows
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PolicyTransactionInput'
+            example:
+              rows:
+              - policy_number: POL-2025-000200
+                agent_code: AGT-2025-001
+                product_code: TERM-SHIELD-01
+                transaction_type: NEW_BUSINESS
+                premium_amount: 12000
+                sum_assured: 5000000
+                issue_date: '2025-04-15'
+                payment_mode: ANNUAL
+                source_system: MANUAL
+      responses:
+        '201':
+          description: Transactions uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PolicyTransaction'
+              example:
+                inserted: 1
+                rows:
+                - id: 200
+                  policy_number: POL-2025-000200
+                  agent_code: AGT-2025-001
+                  product_code: TERM-SHIELD-01
+                  transaction_type: NEW_BUSINESS
+                  premium_amount: 12000
+                  sum_assured: 5000000
+                  issue_date: '2025-04-15'
+                  payment_mode: ANNUAL
+                  policy_status: ACTIVE
+                  source_system: MANUAL
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /persistency-data:
+    get:
+      tags:
+      - Persistency Data
+      summary: List persistency records
+      description: Retrieves policy persistency tracking records with optional filters for agent and date range.
+      operationId: listPersistencyData
+      security: *id001
+      parameters:
+      - name: agent_code
+        in: query
+        required: false
+        description: Filter by agent code
+        schema:
+          type: string
+      - name: period_start
+        in: query
+        required: false
+        description: Filter from date
+        schema:
+          type: string
+      - name: period_end
+        in: query
+        required: false
+        description: Filter to date
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of persistency records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersistencyRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /persistency-data/upload:
+    post:
+      tags:
+      - Persistency Data
+      summary: Bulk upload persistency data
+      description: Uploads multiple persistency tracking records in a single request.
+      operationId: uploadPersistencyData
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rows
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PersistencyRecordInput'
+            example:
+              rows:
+              - agent_code: AGT-2025-001
+                program_id: 1
+                persistency_month: 13
+                period_start: '2025-04-01'
+                period_end: '2025-04-30'
+                policies_due: 20
+                policies_renewed: 17
+      responses:
+        '201':
+          description: Persistency data uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PersistencyRecord'
+              example:
+                inserted: 1
+                rows:
+                - id: 50
+                  agent_code: AGT-2025-001
+                  program_id: 1
+                  persistency_month: 13
+                  period_start: '2025-04-01'
+                  period_end: '2025-04-30'
+                  policies_due: 20
+                  policies_renewed: 17
+                  persistency_pct: 85.0
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /performance:
+    get:
+      tags:
+      - Performance
+      summary: List performance records
+      description: Retrieves agent performance data records with optional filters for program and date range.
+      operationId: listPerformanceRecords
+      security: *id001
+      parameters:
+      - name: program_id
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: period_start
+        in: query
+        required: false
+        description: Filter from date
+        schema:
+          type: string
+      - name: period_end
+        in: query
+        required: false
+        description: Filter to date
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of performance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PerformanceRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Performance
+      summary: Create a performance record
+      description: Creates a single performance data record for an agent, capturing target and achieved values for a KPI within
+        a period.
+      operationId: createPerformanceRecord
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerformanceRecordInput'
+      responses:
+        '201':
+          description: Performance record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceRecord'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /performance/upload:
+    post:
+      tags:
+      - Performance
+      summary: Bulk upload performance data
+      description: Uploads multiple performance data records in a single request for batch ingestion.
+      operationId: uploadPerformanceData
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rows
+              properties:
+                rows:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PerformanceRecordInput'
+            example:
+              rows:
+              - user_id: 101
+                program_id: 1
+                kpi_id: 1
+                period_start: '2025-04-01'
+                period_end: '2025-04-30'
+                target_value: 500000
+                achieved_value: 425000
+                source: UPLOAD
+      responses:
+        '201':
+          description: Performance data uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PerformanceRecord'
+              example:
+                inserted: 1
+                rows:
+                - id: 300
+                  user_id: 101
+                  program_id: 1
+                  kpi_id: 1
+                  period_start: '2025-04-01'
+                  period_end: '2025-04-30'
+                  target_value: 500000
+                  achieved_value: 425000
+                  source: UPLOAD
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /derived-variables:
+    get:
+      tags:
+      - Derived Variables
+      summary: List derived variables
+      description: Retrieves all derived variable definitions used in incentive calculation formulas.
+      operationId: listDerivedVariables
+      security: *id001
+      responses:
+        '200':
+          description: List of derived variables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DerivedVariable'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Derived Variables
+      summary: Create a derived variable
+      description: Creates a new derived variable with a formula expression. Derived variables can reference base performance
+        fields and other variables.
+      operationId: createDerivedVariable
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DerivedVariableInput'
+      responses:
+        '201':
+          description: Derived variable created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DerivedVariable'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /groups:
+    get:
+      tags:
+      - Groups
+      summary: List all groups
+      description: Retrieves all user groups configured for team-based incentive structures.
+      operationId: listGroups
+      security: *id001
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Groups
+      summary: Create a group
+      description: Creates a new user group for organizing agents into teams or channels for incentive calculation.
+      operationId: createGroup
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupInput'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /groups/{id}:
+    get:
+      tags:
+      - Groups
+      summary: Get a group with members
+      description: Retrieves a single group by ID, including its member list.
+      operationId: getGroup
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Group with members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    put:
+      tags:
+      - Groups
+      summary: Update a group
+      description: Updates an existing group's configuration.
+      operationId: updateGroup
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupInput'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - Groups
+      summary: Delete a group
+      description: Deletes a group and all its member associations.
+      operationId: deleteGroup
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Deleted group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /groups/{groupId}/members:
+    get:
+      tags:
+      - Groups
+      summary: List members of a group
+      description: Retrieves all members belonging to a specific group.
+      operationId: listGroupMembers
+      security: *id001
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Group members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupMember'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    post:
+      tags:
+      - Groups
+      summary: Add a member to a group
+      description: Adds a new member to an existing group with a specified role.
+      operationId: addGroupMember
+      security: *id001
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupMemberInput'
+      responses:
+        '201':
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMember'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /groups/{groupId}/members/{memberId}:
+    put:
+      tags:
+      - Groups
+      summary: Update a group member
+      description: Updates an existing group member's role or reporting relationship.
+      operationId: updateGroupMember
+      security: *id001
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      - name: memberId
+        in: path
+        required: true
+        description: Member ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupMemberInput'
+      responses:
+        '200':
+          description: Member updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMember'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+    delete:
+      tags:
+      - Groups
+      summary: Remove a member from a group
+      description: Removes a member from a group.
+      operationId: deleteGroupMember
+      security: *id001
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: Group ID
+        schema:
+          type: integer
+      - name: memberId
+        in: path
+        required: true
+        description: Member ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMember'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/system-token
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Error message
+      example:
+        error: Resource not found
+    Program:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: FY2025 Agency Channel Incentive
+        description:
+          type: string
+          example: Annual incentive program for agency channel agents
+        channel_id:
+          type: integer
+          example: 1
+        plan_type:
+          type: string
+          example: AGENT_INCENTIVE
+        start_date:
+          type: string
+          format: date
+          example: '2025-04-01'
+        end_date:
+          type: string
+          format: date
+          example: '2026-03-31'
+        calc_day_rule:
+          type: string
+          default: LAST_DAY_OF_MONTH
+          example: LAST_DAY_OF_MONTH
+        status:
+          type: string
+          default: DRAFT
+          example: ACTIVE
+        banner_url:
+          type: string
+          example: https://cdn.example.com/banners/fy2025.png
+        created_by:
+          type: integer
+          example: 10
+        created_at:
+          type: string
+          format: date-time
+          example: '2025-01-15T09:30:00Z'
+    ProgramInput:
+      type: object
+      required:
+      - name
+      - start_date
+      - end_date
+      properties:
+        name:
+          type: string
+          example: FY2025 Agency Channel Incentive
+        description:
+          type: string
+          example: Annual incentive program for agency channel agents
+        channel_id:
+          type: integer
+          example: 1
+        plan_type:
+          type: string
+          example: AGENT_INCENTIVE
+        start_date:
+          type: string
+          format: date
+          example: '2025-04-01'
+        end_date:
+          type: string
+          format: date
+          example: '2026-03-31'
+        calc_day_rule:
+          type: string
+          default: LAST_DAY_OF_MONTH
+        status:
+          type: string
+          default: DRAFT
+        banner_url:
+          type: string
+        created_by:
+          type: integer
+    KpiDefinition:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        program_id:
+          type: integer
+          example: 1
+        kpi_name:
+          type: string
+          example: New Business APE Achievement
+        frequency:
+          type: string
+          default: MONTHLY
+          example: MONTHLY
+        is_positive:
+          type: boolean
+          default: true
+          example: true
+        breakdown_rule:
+          type: string
+          default: FULL_MONTH
+          example: FULL_MONTH
+        target_structure:
+          type: string
+          default: MONTHLY_TARGET
+          example: MONTHLY_TARGET
+        measurement_type:
+          type: string
+          default: PERCENTAGE
+          example: PERCENTAGE
+        tracking_method:
+          type: string
+          default: TARGET_BASED
+          example: TARGET_BASED
+        output_display:
+          type: string
+          default: NUMBER
+          example: NUMBER
+        sort_order:
+          type: integer
+          default: 0
+          example: 1
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiMilestone'
+          description: Associated milestones (included on GET by id)
+    KpiDefinitionInput:
+      type: object
+      required:
+      - kpi_name
+      properties:
+        program_id:
+          type: integer
+          example: 1
+        kpi_name:
+          type: string
+          example: New Business APE Achievement
+        frequency:
+          type: string
+          default: MONTHLY
+        is_positive:
+          type: boolean
+          default: true
+        breakdown_rule:
+          type: string
+          default: FULL_MONTH
+        target_structure:
+          type: string
+          default: MONTHLY_TARGET
+        measurement_type:
+          type: string
+          default: PERCENTAGE
+        tracking_method:
+          type: string
+          default: TARGET_BASED
+        output_display:
+          type: string
+          default: NUMBER
+        sort_order:
+          type: integer
+          default: 0
+    KpiMilestone:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        kpi_id:
+          type: integer
+          example: 1
+        milestone_label:
+          type: string
+          example: M-1
+        performance_driver:
+          type: string
+          example: NB_APE_ACHIEVEMENT
+        function_type:
+          type: string
+          example: LEFT_INCLUSIVE_BETWEEN
+        range_from:
+          type: number
+          example: 0
+        range_to:
+          type: number
+          example: 50
+        sort_order:
+          type: integer
+          default: 0
+          example: 1
+    KpiMilestoneInput:
+      type: object
+      properties:
+        milestone_label:
+          type: string
+          example: M-1
+        performance_driver:
+          type: string
+          example: NB_APE_ACHIEVEMENT
+        function_type:
+          type: string
+          example: LEFT_INCLUSIVE_BETWEEN
+        range_from:
+          type: number
+          example: 0
+        range_to:
+          type: number
+          example: 50
+        sort_order:
+          type: integer
+          default: 0
+    PayoutRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        program_id:
+          type: integer
+          example: 1
+        rule_name:
+          type: string
+          example: NB Commission Payout
+        calc_type:
+          type: string
+          enum:
+          - VARIABLE
+          - FIXED
+          - PERCENTAGE
+          example: VARIABLE
+        variable_name:
+          type: string
+          example: nb_commission_rate
+        has_qualifying_rules:
+          type: boolean
+          default: false
+          example: true
+        has_incentive_table:
+          type: boolean
+          default: false
+          example: true
+        is_active:
+          type: boolean
+          default: true
+          example: true
+        slabs:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayoutSlab'
+          description: Associated slabs (included on GET by id)
+    PayoutRuleInput:
+      type: object
+      required:
+      - rule_name
+      properties:
+        program_id:
+          type: integer
+          example: 1
+        rule_name:
+          type: string
+          example: NB Commission Payout
+        calc_type:
+          type: string
+          enum:
+          - VARIABLE
+          - FIXED
+          - PERCENTAGE
+        variable_name:
+          type: string
+        has_qualifying_rules:
+          type: boolean
+          default: false
+        has_incentive_table:
+          type: boolean
+          default: false
+        is_active:
+          type: boolean
+          default: true
+    PayoutSlab:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        payout_rule_id:
+          type: integer
+          example: 1
+        slab_label:
+          type: string
+          example: Slab A - Base
+        kpi_id:
+          type: integer
+          example: 1
+        milestone_label:
+          type: string
+          example: M-1
+        operator:
+          type: string
+          enum:
+          - GTE
+          - LTE
+          - BETWEEN
+          - EQ
+          example: BETWEEN
+        value1:
+          type: number
+          example: 0
+        value2:
+          type: number
+          example: 50
+        incentive_operator:
+          type: string
+          enum:
+          - MULTIPLY
+          - FLAT
+          - PERCENTAGE_OF
+          example: MULTIPLY
+        tag_type:
+          type: string
+          example: NEW_BUSINESS
+        parameter_name:
+          type: string
+          example: base_rate
+        weight_pct:
+          type: number
+          default: 100
+          example: 100
+        payout_calc_type:
+          type: string
+          enum:
+          - HIGHEST_AMOUNT
+          - PROPORTIONAL
+          example: HIGHEST_AMOUNT
+        max_cap:
+          type: number
+          example: 500000
+        sort_order:
+          type: integer
+          default: 0
+          example: 1
+    PayoutSlabInput:
+      type: object
+      properties:
+        slab_label:
+          type: string
+          example: Slab A - Base
+        kpi_id:
+          type: integer
+        milestone_label:
+          type: string
+        operator:
+          type: string
+          enum:
+          - GTE
+          - LTE
+          - BETWEEN
+          - EQ
+        value1:
+          type: number
+        value2:
+          type: number
+        incentive_operator:
+          type: string
+          enum:
+          - MULTIPLY
+          - FLAT
+          - PERCENTAGE_OF
+        tag_type:
+          type: string
+        parameter_name:
+          type: string
+        weight_pct:
+          type: number
+          default: 100
+        payout_calc_type:
+          type: string
+          enum:
+          - HIGHEST_AMOUNT
+          - PROPORTIONAL
+        max_cap:
+          type: number
+        sort_order:
+          type: integer
+          default: 0
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 101
+        agent_code:
+          type: string
+          example: AGT-2025-001
+        agent_name:
+          type: string
+          example: Rajesh Kumar
+        channel_id:
+          type: integer
+          example: 1
+        region_id:
+          type: integer
+          example: 3
+        branch_code:
+          type: string
+          example: MUM-001
+        license_number:
+          type: string
+          example: IRDAI-LIC-78945
+        license_expiry:
+          type: string
+          format: date
+          example: '2027-12-31'
+        activation_date:
+          type: string
+          format: date
+          example: '2023-06-15'
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          - SUSPENDED
+          default: ACTIVE
+          example: ACTIVE
+        parent_agent_id:
+          type: integer
+        hierarchy_path:
+          type: string
+          example: /1/
+        hierarchy_level:
+          type: integer
+          default: 1
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-06-15T10:00:00Z'
+    AgentInput:
+      type: object
+      required:
+      - agent_code
+      properties:
+        user_id:
+          type: integer
+        agent_code:
+          type: string
+          example: AGT-2025-001
+        agent_name:
+          type: string
+          example: Rajesh Kumar
+        channel_id:
+          type: integer
+        region_id:
+          type: integer
+        branch_code:
+          type: string
+        license_number:
+          type: string
+        license_expiry:
+          type: string
+          format: date
+        activation_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          - SUSPENDED
+          default: ACTIVE
+        parent_agent_id:
+          type: integer
+        hierarchy_path:
+          type: string
+        hierarchy_level:
+          type: integer
+          default: 1
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        product_code:
+          type: string
+          example: ULIP-GROWTH-01
+        product_name:
+          type: string
+          example: Growth Plus ULIP Plan
+        product_category:
+          type: string
+          enum:
+          - ULIP
+          - TERM
+          - TRAD
+          - ENDOWMENT
+          - HEALTH
+          - ANNUITY
+          example: ULIP
+        product_type:
+          type: string
+          enum:
+          - LINKED
+          - NON_LINKED
+          - PROTECTION
+          example: LINKED
+        min_premium:
+          type: number
+          default: 0
+          example: 25000
+        min_sum_assured:
+          type: number
+          default: 0
+          example: 500000
+        min_policy_term:
+          type: integer
+          default: 1
+          example: 5
+        is_active:
+          type: boolean
+          default: true
+          example: true
+    ProductInput:
+      type: object
+      required:
+      - product_code
+      - product_name
+      properties:
+        product_code:
+          type: string
+          example: ULIP-GROWTH-01
+        product_name:
+          type: string
+          example: Growth Plus ULIP Plan
+        product_category:
+          type: string
+          enum:
+          - ULIP
+          - TERM
+          - TRAD
+          - ENDOWMENT
+          - HEALTH
+          - ANNUITY
+        product_type:
+          type: string
+          enum:
+          - LINKED
+          - NON_LINKED
+          - PROTECTION
+        min_premium:
+          type: number
+          default: 0
+        min_sum_assured:
+          type: number
+          default: 0
+        min_policy_term:
+          type: integer
+          default: 1
+        is_active:
+          type: boolean
+          default: true
+    IncentiveRate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        program_id:
+          type: integer
+          example: 1
+        product_code:
+          type: string
+          example: ULIP-GROWTH-01
+        channel_id:
+          type: integer
+          example: 1
+        channel_name:
+          type: string
+          example: Agency
+          description: Joined from channels table
+        policy_year:
+          type: integer
+          default: 1
+          example: 1
+        transaction_type:
+          type: string
+          enum:
+          - NEW_BUSINESS
+          - RENEWAL
+          example: NEW_BUSINESS
+        rate_type:
+          type: string
+          enum:
+          - PERCENTAGE_OF_PREMIUM
+          - FLAT_PER_POLICY
+          - PERCENTAGE_OF_APE
+          example: PERCENTAGE_OF_PREMIUM
+        incentive_rate:
+          type: number
+          example: 15.5
+        min_premium_slab:
+          type: number
+          default: 0
+          example: 25000
+        max_premium_slab:
+          type: number
+          default: 999999999
+          example: 100000
+        min_policy_term:
+          type: integer
+          default: 0
+          example: 5
+        max_policy_term:
+          type: integer
+          default: 99
+          example: 30
+        effective_from:
+          type: string
+          format: date
+          example: '2025-04-01'
+        effective_to:
+          type: string
+          format: date
+          example: '2026-03-31'
+        is_active:
+          type: boolean
+          default: true
+          example: true
+    IncentiveRateInput:
+      type: object
+      required:
+      - incentive_rate
+      - effective_from
+      properties:
+        program_id:
+          type: integer
+        product_code:
+          type: string
+        channel_id:
+          type: integer
+        policy_year:
+          type: integer
+          default: 1
+        transaction_type:
+          type: string
+          enum:
+          - NEW_BUSINESS
+          - RENEWAL
+        rate_type:
+          type: string
+          enum:
+          - PERCENTAGE_OF_PREMIUM
+          - FLAT_PER_POLICY
+          - PERCENTAGE_OF_APE
+        incentive_rate:
+          type: number
+          example: 15.5
+        min_premium_slab:
+          type: number
+          default: 0
+        max_premium_slab:
+          type: number
+          default: 999999999
+        min_policy_term:
+          type: integer
+          default: 0
+        max_policy_term:
+          type: integer
+          default: 99
+        effective_from:
+          type: string
+          format: date
+        effective_to:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+          default: true
+    PolicyTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        policy_number:
+          type: string
+          example: POL-2025-000001
+        agent_code:
+          type: string
+          example: AGT-2025-001
+        product_code:
+          type: string
+          example: ULIP-GROWTH-01
+        channel_id:
+          type: integer
+          example: 1
+        region_id:
+          type: integer
+          example: 3
+        transaction_type:
+          type: string
+          enum:
+          - NEW_BUSINESS
+          - RENEWAL
+          - LAPSE
+          - REVIVAL
+          - SURRENDER
+          example: NEW_BUSINESS
+        policy_year:
+          type: integer
+          example: 1
+        premium_amount:
+          type: number
+          example: 50000
+        sum_assured:
+          type: number
+          example: 1000000
+        annualized_premium:
+          type: number
+          example: 50000
+        issue_date:
+          type: string
+          format: date
+          example: '2025-04-10'
+        due_date:
+          type: string
+          format: date
+          example: '2025-04-10'
+        paid_date:
+          type: string
+          format: date
+          example: '2025-04-10'
+        payment_mode:
+          type: string
+          enum:
+          - ANNUAL
+          - HALF_YEARLY
+          - QUARTERLY
+          - MONTHLY
+          example: ANNUAL
+        policy_status:
+          type: string
+          default: ACTIVE
+          example: ACTIVE
+        source_system:
+          type: string
+          enum:
+          - POLICY_ADMIN
+          - MANUAL
+          example: POLICY_ADMIN
+        uploaded_at:
+          type: string
+          format: date-time
+          example: '2025-04-11T08:00:00Z'
+    PolicyTransactionInput:
+      type: object
+      required:
+      - policy_number
+      - premium_amount
+      properties:
+        policy_number:
+          type: string
+          example: POL-2025-000001
+        agent_code:
+          type: string
+        product_code:
+          type: string
+        channel_id:
+          type: integer
+        region_id:
+          type: integer
+        transaction_type:
+          type: string
+          enum:
+          - NEW_BUSINESS
+          - RENEWAL
+          - LAPSE
+          - REVIVAL
+          - SURRENDER
+        policy_year:
+          type: integer
+        premium_amount:
+          type: number
+          example: 50000
+        sum_assured:
+          type: number
+        annualized_premium:
+          type: number
+        issue_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        paid_date:
+          type: string
+          format: date
+        payment_mode:
+          type: string
+          enum:
+          - ANNUAL
+          - HALF_YEARLY
+          - QUARTERLY
+          - MONTHLY
+        policy_status:
+          type: string
+          default: ACTIVE
+        source_system:
+          type: string
+          enum:
+          - POLICY_ADMIN
+          - MANUAL
+    PersistencyRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        agent_code:
+          type: string
+          example: AGT-2025-001
+        program_id:
+          type: integer
+          example: 1
+        persistency_month:
+          type: integer
+          enum:
+          - 13
+          - 25
+          - 37
+          - 49
+          - 61
+          example: 13
+        period_start:
+          type: string
+          format: date
+          example: '2025-04-01'
+        period_end:
+          type: string
+          format: date
+          example: '2025-04-30'
+        policies_due:
+          type: integer
+          default: 0
+          example: 20
+        policies_renewed:
+          type: integer
+          default: 0
+          example: 17
+        persistency_pct:
+          type: number
+          description: Computed as policies_renewed / policies_due * 100
+          example: 85.0
+        calculated_at:
+          type: string
+          format: date-time
+          example: '2025-05-01T02:00:00Z'
+    PersistencyRecordInput:
+      type: object
+      properties:
+        agent_code:
+          type: string
+        program_id:
+          type: integer
+        persistency_month:
+          type: integer
+          enum:
+          - 13
+          - 25
+          - 37
+          - 49
+          - 61
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        policies_due:
+          type: integer
+          default: 0
+        policies_renewed:
+          type: integer
+          default: 0
+    PerformanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 101
+        program_id:
+          type: integer
+          example: 1
+        kpi_id:
+          type: integer
+          example: 1
+        period_start:
+          type: string
+          format: date
+          example: '2025-04-01'
+        period_end:
+          type: string
+          format: date
+          example: '2025-04-30'
+        target_value:
+          type: number
+          default: 0
+          example: 500000
+        achieved_value:
+          type: number
+          default: 0
+          example: 425000
+        source:
+          type: string
+          enum:
+          - UPLOAD
+          - API
+          - MANUAL
+          default: UPLOAD
+          example: UPLOAD
+        uploaded_at:
+          type: string
+          format: date-time
+          example: '2025-05-01T08:00:00Z'
+    PerformanceRecordInput:
+      type: object
+      required:
+      - user_id
+      - period_start
+      - period_end
+      properties:
+        user_id:
+          type: integer
+          example: 101
+        program_id:
+          type: integer
+        kpi_id:
+          type: integer
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        target_value:
+          type: number
+          default: 0
+        achieved_value:
+          type: number
+          default: 0
+        source:
+          type: string
+          enum:
+          - UPLOAD
+          - API
+          - MANUAL
+          default: UPLOAD
+    DerivedVariable:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        var_name:
+          type: string
+          example: weighted_ape
+        formula:
+          type: string
+          example: nb_ape * 0.7 + renewal_ape * 0.3
+        base_fields:
+          type: array
+          items:
+            type: string
+          example:
+          - nb_ape
+          - renewal_ape
+        status:
+          type: string
+          default: IN_USE
+          example: IN_USE
+        created_by:
+          type: integer
+          example: 10
+        created_at:
+          type: string
+          format: date-time
+          example: '2025-01-20T14:00:00Z'
+    DerivedVariableInput:
+      type: object
+      required:
+      - var_name
+      - formula
+      properties:
+        var_name:
+          type: string
+          example: weighted_ape
+        formula:
+          type: string
+          example: nb_ape * 0.7 + renewal_ape * 0.3
+        base_fields:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          default: IN_USE
+        created_by:
+          type: integer
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        program_id:
+          type: integer
+          example: 1
+        group_name:
+          type: string
+          example: Mumbai West Team Alpha
+        group_type:
+          type: string
+          enum:
+          - SINGLE
+          - TEAM
+          - CHANNEL
+          example: TEAM
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMember'
+          description: Group members (included on GET by id)
+    GroupInput:
+      type: object
+      properties:
+        program_id:
+          type: integer
+        group_name:
+          type: string
+          example: Mumbai West Team Alpha
+        group_type:
+          type: string
+          enum:
+          - SINGLE
+          - TEAM
+          - CHANNEL
+    GroupMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        group_id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 101
+        role:
+          type: string
+          enum:
+          - SELF
+          - MANAGER
+          - MEMBER
+          example: MEMBER
+        reports_to_user_id:
+          type: integer
+          example: 50
+    GroupMemberInput:
+      type: object
+      required:
+      - user_id
+      properties:
+        user_id:
+          type: integer
+          example: 101
+        role:
+          type: string
+          enum:
+          - SELF
+          - MANAGER
+          - MEMBER
+        reports_to_user_id:
+          type: integer
+    IncentiveResult:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        agent_code:
+          type: string
+          example: AGT-2025-001
+        program_id:
+          type: integer
+          example: 1
+        period_start:
+          type: string
+          format: date
+          example: '2025-04-01'
+        period_end:
+          type: string
+          format: date
+          example: '2025-04-30'
+        nb_incentive:
+          type: number
+          example: 7500
+        renewal_incentive:
+          type: number
+          example: 3200
+        product_bonus:
+          type: number
+          example: 1500
+        persistency_bonus:
+          type: number
+          example: 2000
+        clawback_amount:
+          type: number
+          example: 0
+        net_self_incentive:
+          type: number
+          example: 14200
+        l1_override:
+          type: number
+          example: 1200
+        l2_override:
+          type: number
+          example: 600
+        l3_override:
+          type: number
+          example: 300
+        total_override:
+          type: number
+          example: 2100
+        total_incentive:
+          type: number
+          example: 16300
+        persistency_gate_passed:
+          type: boolean
+          example: true
+        qualifying_rules_passed:
+          type: boolean
+          example: true
+        disqualification_reason:
+          type: string
+          nullable: true
+        calc_breakdown:
+          type: object
+          description: Detailed calculation breakdown JSON
+          example:
+            nb_policies: 5
+            renewal_policies: 8
+            total_ape: 250000
+            persistency_13m: 85.0
+        status:
+          type: string
+          enum:
+          - DRAFT
+          - APPROVED
+          - INITIATED
+          - PAID
+          example: DRAFT
+        calculated_at:
+          type: string
+          format: date-time
+          example: '2025-05-01T03:00:00Z'
+        approved_by:
+          type: integer
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+    LeaderboardResponse:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            type: object
+            properties:
+              rank:
+                type: integer
+                example: 1
+              agent_code:
+                type: string
+                example: AGT-2025-001
+              agent_name:
+                type: string
+                example: Rajesh Kumar
+              channel:
+                type: string
+                example: Agency
+              region:
+                type: string
+                example: West
+              total_incentive:
+                type: number
+                example: 45200
+              nb_incentive:
+                type: number
+                example: 28000
+              renewal_incentive:
+                type: number
+                example: 12000
+              persistency_bonus:
+                type: number
+                example: 5200
+        summary:
+          type: object
+          properties:
+            total_pool:
+              type: number
+              example: 2450000
+            agent_count:
+              type: integer
+              example: 156
+            avg_incentive:
+              type: number
+              example: 15705
+            top_earner:
+              type: number
+              example: 45200
+    DashboardSummary:
+      type: object
+      properties:
+        kpi:
+          type: object
+          properties:
+            total_agents:
+              type: integer
+              example: 350
+            active_programs:
+              type: integer
+              example: 3
+            total_incentive_pool:
+              type: number
+              example: 8500000
+            avg_payout:
+              type: number
+              example: 24285
+        channelBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+                example: Agency
+              agent_count:
+                type: integer
+                example: 200
+              total_incentive:
+                type: number
+                example: 5200000
+        productMix:
+          type: array
+          items:
+            type: object
+            properties:
+              product_category:
+                type: string
+                example: ULIP
+              premium_collected:
+                type: number
+                example: 45000000
+              policy_count:
+                type: integer
+                example: 1200
+        topAgents:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_code:
+                type: string
+                example: AGT-2025-001
+              agent_name:
+                type: string
+                example: Rajesh Kumar
+              total_incentive:
+                type: number
+                example: 45200
+        programs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Program'
+        pipelineStatus:
+          type: object
+          properties:
+            draft:
+              type: integer
+              example: 120
+            approved:
+              type: integer
+              example: 180
+            initiated:
+              type: integer
+              example: 30
+            paid:
+              type: integer
+              example: 20
+        recentActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+                example: CALCULATION_RUN
+              description:
+                type: string
+                example: Incentive calculation completed for April 2025
+              timestamp:
+                type: string
+                format: date-time
+                example: '2025-05-01T03:00:00Z'
+    CalculationRunRequest:
+      type: object
+      required:
+      - programId
+      - periodStart
+      - periodEnd
+      properties:
+        programId:
+          type: integer
+          example: 1
+        periodStart:
+          type: string
+          format: date
+          example: '2025-04-01'
+        periodEnd:
+          type: string
+          format: date
+          example: '2025-04-30'
+    CalculationRunResponse:
+      type: object
+      properties:
+        programId:
+          type: integer
+          example: 1
+        periodStart:
+          type: string
+          format: date
+          example: '2025-04-01'
+        periodEnd:
+          type: string
+          format: date
+          example: '2025-04-30'
+        totalAgents:
+          type: integer
+          example: 156
+        successCount:
+          type: integer
+          example: 152
+        errorCount:
+          type: integer
+          example: 4
+        totalIncentivePool:
+          type: number
+          example: 2450000
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_code:
+                type: string
+                example: AGT-2025-099
+              error:
+                type: string
+                example: Missing persistency data for 13-month period
+    StageSummary:
+      type: object
+      properties:
+        DRAFT:
+          type: object
+          properties:
+            count:
+              type: integer
+              example: 120
+            total:
+              type: number
+              example: 1800000
+        APPROVED:
+          type: object
+          properties:
+            count:
+              type: integer
+              example: 80
+            total:
+              type: number
+              example: 1200000
+        INITIATED:
+          type: object
+          properties:
+            count:
+              type: integer
+              example: 30
+            total:
+              type: number
+              example: 450000
+        PAID:
+          type: object
+          properties:
+            count:
+              type: integer
+              example: 20
+            total:
+              type: number
+              example: 300000
+    ChannelSummary:
+      type: object
+      properties:
+        channel:
+          type: string
+          example: Agency
+        agent_count:
+          type: integer
+          example: 156
+        total_pool:
+          type: number
+          example: 2450000
+        avg_incentive:
+          type: number
+          example: 15705
+        paid_count:
+          type: integer
+          example: 120
+    FileLogRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        file_name:
+          type: string
+          example: policy_extract_20250401.csv
+        file_type:
+          type: string
+          example: POLICY_TRANSACTION
+        total_rows:
+          type: integer
+          example: 5000
+        valid_rows:
+          type: integer
+          example: 4950
+        error_rows:
+          type: integer
+          example: 50
+        status:
+          type: string
+          example: COMPLETED
+        started_at:
+          type: string
+          format: date-time
+          example: '2025-04-02T01:00:00Z'
+        completed_at:
+          type: string
+          format: date-time
+          example: '2025-04-02T01:05:00Z'
+    AuditLogRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        source:
+          type: string
+          example: PENTA
+        action:
+          type: string
+          example: POLICY_DATA_RECEIVED
+        details:
+          type: string
+          example: Received 250 policy records from Penta system
+        status:
+          type: string
+          example: SUCCESS
+        created_at:
+          type: string
+          format: date-time
+          example: '2025-04-02T01:00:00Z'
+    IntegrationStatus:
+      type: object
+      properties:
+        lifeAsia:
+          type: object
+          properties:
+            last_file:
+              type: string
+              example: LA_EXTRACT_20250401.csv
+            last_sync:
+              type: string
+              format: date-time
+              example: '2025-04-01T23:00:00Z'
+            status:
+              type: string
+              example: HEALTHY
+            records_processed:
+              type: integer
+              example: 12500
+        penta:
+          type: object
+          properties:
+            last_heartbeat:
+              type: string
+              format: date-time
+              example: '2025-04-02T08:00:00Z'
+            status:
+              type: string
+              example: HEALTHY
+            batches_today:
+              type: integer
+              example: 3
+        hierarchy:
+          type: object
+          properties:
+            last_sync:
+              type: string
+              format: date-time
+              example: '2025-04-01T06:00:00Z'
+            status:
+              type: string
+              example: HEALTHY
+            agents_synced:
+              type: integer
+              example: 350
+        outbound:
+          type: object
+          properties:
+            last_export:
+              type: string
+              format: date-time
+              example: '2025-04-01T10:00:00Z'
+            status:
+              type: string
+              example: HEALTHY
+            destination:
+              type: string
+              example: Oracle Financials

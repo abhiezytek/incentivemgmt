@@ -1,22 +1,128 @@
 import { Router } from 'express';
 import { query } from '../db/pool.js';
+import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 
 /**
- * GET /api/leaderboard
- *
- * Ranked agents by total incentive for a given program + period.
- * Query params: programId (required), period (required), channel, region
- *
- * Returns { agents: [...], summary: { total_pool, agent_count, avg_incentive, top_earner } }
+ * @swagger
+ * /api/leaderboard:
+ *   get:
+ *     tags:
+ *       - Leaderboard
+ *     summary: Ranked agents by incentive
+ *     description: >
+ *       Returns agents ranked by total incentive for a given program and
+ *       period, along with a summary object containing aggregate stats.
+ *       Optionally filter by distribution channel and region.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: programId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Incentive program ID
+ *         example: 12
+ *       - in: query
+ *         name: period
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Incentive period start date
+ *         example: "2025-01-01"
+ *       - in: query
+ *         name: channel
+ *         schema:
+ *           type: string
+ *         description: Filter by channel code
+ *         example: "BANCA"
+ *       - in: query
+ *         name: region
+ *         schema:
+ *           type: string
+ *         description: Filter by region code
+ *         example: "WEST"
+ *     responses:
+ *       200:
+ *         description: Ranked agent list with summary
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 agents:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       agent_code:
+ *                         type: string
+ *                       agent_name:
+ *                         type: string
+ *                       channel:
+ *                         type: string
+ *                       region:
+ *                         type: string
+ *                       total_incentive:
+ *                         type: number
+ *                       nb_achievement_pct:
+ *                         type: number
+ *                       persistency_13m:
+ *                         type: number
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     total_pool:
+ *                       type: number
+ *                     agent_count:
+ *                       type: integer
+ *                     avg_incentive:
+ *                       type: number
+ *                     top_earner:
+ *                       type: string
+ *             example:
+ *               agents:
+ *                 - agent_code: "AGT-00451"
+ *                   agent_name: "Priya Sharma"
+ *                   channel: "Bancassurance"
+ *                   region: "West"
+ *                   total_incentive: 18500.00
+ *                   nb_achievement_pct: 142.5
+ *                   persistency_13m: 88.2
+ *                 - agent_code: "AGT-00322"
+ *                   agent_name: "Rajesh Kumar"
+ *                   channel: "Agency"
+ *                   region: "North"
+ *                   total_incentive: 15200.00
+ *                   nb_achievement_pct: 128.0
+ *                   persistency_13m: 91.5
+ *               summary:
+ *                 total_pool: 485000.00
+ *                 agent_count: 80
+ *                 avg_incentive: 6062.50
+ *                 top_earner: "Priya Sharma"
+ *       400:
+ *         description: Missing required query parameters
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "programId and period are required"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: "Database connection failed"
  */
 router.get('/', async (req, res) => {
   try {
     const { programId, period, channel, region } = req.query;
 
     if (!programId || !period) {
-      return res.status(400).json({ error: 'programId and period are required' });
+      return res.status(ERRORS.VAL_001.status).json(apiError('VAL_001', { fields: 'programId, period' }));
     }
 
     const agents = await query(

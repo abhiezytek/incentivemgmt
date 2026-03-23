@@ -9,6 +9,7 @@ import IncentiveBreakdown from './pages/IncentiveBreakdown'
 import Leaderboard from './pages/Leaderboard'
 import PayoutDisbursement from './pages/PayoutDisbursement'
 import TeamPerformance from './pages/TeamPerformance'
+import IntegrationDashboard from './pages/Integration/IntegrationDashboard'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="incentive/leaderboard" element={<Leaderboard />} />
         <Route path="payout/disbursement" element={<PayoutDisbursement />} />
         <Route path="team/performance" element={<TeamPerformance />} />
+        <Route path="integration/dashboard" element={<IntegrationDashboard />} />
       </Route>
     </Routes>
   )
