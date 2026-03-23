@@ -676,4 +676,197 @@ POL001234 → POL***234   (first 3 + last 3 visible)
 | NOT applied to | SAP/Oracle export files, calc engine |
 | Controlled by | `system_config` WHERE `key = 'POLICY_MASK_ENABLED'` |
 
-<!-- Sections 7-10 will be appended next -->
+---
+
+## Section 7 — How to Make Code Changes
+
+### 7.1 Add a New API Endpoint
+
+Template with JSDoc + route handler:
+
+```js
+/**
+ * @swagger
+ * /api/v1/your-resource:
+ *   get:
+ *     tags: [YourTag]
+ *     summary: Describe what it does
+ *     parameters:
+ *       - in: query
+ *         name: param1
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/your-resource', userAuth, async (req, res) => {
+  try {
+    const rows = await query('SELECT ... FROM ... WHERE ...', [req.query.param1]);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('your-resource error:', err);
+    res.status(500).json(apiError(ERRORS.INT_QUERY_FAILED, err.message));
+  }
+});
+```
+
+### 7.2 Add a New React Screen (4 steps)
+
+1. Create page component in `client/src/pages/YourFeature/YourPage.jsx`
+2. Add route in `client/src/App.jsx` inside `<Routes>`
+3. Add sidebar link in `client/src/components/AppShell.jsx`
+4. Create API helper in `client/src/api/` if needed
+
+### 7.3 Add a New CSV Upload Type (5 steps)
+
+1. Add file type constant in upload route
+2. Add column mapping and validation logic
+3. Add `bulkInsertTyped` call with correct `typeMap`
+4. Add Swagger annotation for the new upload endpoint
+5. Test with sample CSV — verify staging → main table flow
+
+### 7.4 Add a New Scheduled Cron Job (5 steps)
+
+1. Create job file in `server/src/jobs/yourJob.js`
+2. Use `node-cron` to define schedule
+3. Export `startYourJob()` function
+4. Import and call from `server/index.js`
+5. Add graceful skip if required env var is not set
+
+### 7.5 CRITICAL RULES — NEVER BREAK THESE
+
+| Rule | Reason |
+|------|--------|
+| ⛔ NEVER use ORM — raw `pg` only | Performance + control over complex insurance queries |
+| ⛔ NEVER hardcode incentive rates in JS — always table-driven | Rates change per program; `ins_incentive_rates` is the source of truth |
+| ⛔ NEVER log `policy_number` in plain text in audit tables — mask it | PII compliance; use `maskPolicyNumber()` |
+| ⛔ NEVER skip `ON CONFLICT` in bulk inserts — always upsert | Duplicate data from SFTP/API re-runs is expected |
+| ⛔ NEVER use `Promise.all` in calculation engine — use `for...of` | Prevents connection pool exhaustion under load |
+| ⛔ NEVER change `ins_incentive_results` outside the `DRAFT→APPROVED→INITIATED→PAID` status workflow | Audit integrity depends on sequential state transitions |
+| ⛔ NEVER expose system JWT secret in client code | System tokens are server-side only (`api_clients` table) |
+
+---
+
+## Section 8 — Environment Setup for New Developer
+
+### 8.1 Prerequisites
+
+- Node.js 20.x
+- PostgreSQL 15+
+- Git
+- VS Code + GitHub Copilot extension
+
+### 8.2 First Time Setup
+
+```bash
+# 1. Clone repo
+git clone <repo-url> && cd incentivemgmt
+
+# 2. Install server dependencies
+cd server && npm install
+
+# 3. Install client dependencies
+cd ../client && npm install
+
+# 4. Configure environment
+cd ../server
+cp .env.example .env    # fill in DB credentials
+
+# 5. Create database
+createdb incentive_db
+
+# 6. Run migration files in order
+psql -d incentive_db -f src/db/migrations/001_master_schema.sql
+psql -d incentive_db -f src/db/migrations/002_insurance_schema.sql
+psql -d incentive_db -f src/db/migrations/003_integration_schema.sql
+
+# 7. Create stored function
+psql -d incentive_db -f src/db/functions/compute_agent_kpi.sql
+
+# 8. Start server (port 5000)
+cd server && npm run dev
+
+# 9. Start client (port 5173)
+cd ../client && npm run dev
+
+# 10. Open app
+#     http://localhost:5173
+
+# 11. Open Swagger UI
+#     http://localhost:5000/api/docs
+```
+
+### 8.3 VS Code Settings for Copilot Context
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "github.copilot.chat.contextFiles": [
+    "docs/SCHEMA_GUIDE.md",
+    "docs/COPILOT_CONTEXT.md",
+    "docs/DEVELOPER_GUIDE.md"
+  ]
+}
+```
+
+---
+
+## Section 9 — Troubleshooting Common Issues
+
+| # | Problem | Likely Cause | Fix |
+|---|---------|-------------|-----|
+| 1 | Swagger UI blank | JSDoc missing from routes | Re-annotate route files with `@swagger` blocks |
+| 2 | Bulk insert type error | UNNEST `typeMap` mismatch | Check `typeMap` in `bulkInsertTyped` matches column types |
+| 3 | Zero incentive calculated | No rate in `ins_incentive_rates` | Check product + channel + year match exists |
+| 4 | Agent not found in sync | `agent_code` format mismatch | Check Hierarchy API returns same format as DB |
+| 5 | SFTP file skipped | Filename pattern mismatch | Verify `LIFEASIA_POLICY_TXN_YYYYMMDD.csv` format |
+| 6 | Gate failed incorrectly | Persistency not loaded | Upload persistency CSV before calculating |
+| 7 | Policy number not masked | `maskResponse.js` not applied | Add middleware to router in `app.js` |
+| 8 | JWT expired — system token | 24h expiry reached | Penta must refresh and retry |
+| 9 | Wrong override amounts | `hierarchy_path` corrupted | Re-run `hierarchy_path` UPDATE 3 times |
+| 10 | Duplicate file processed | No filename check | Add uniqueness check in `sftpPoller.js` |
+
+---
+
+## Section 10 — Glossary
+
+| Term | Definition |
+|------|-----------|
+| APE | Annualized Premium Equivalent, used for ULIP targets |
+| AS400 | IBM iSeries platform running Life Asia |
+| Banca | Bancassurance distribution channel |
+| Channel | Distribution method: Agency, Banca, Direct, Broker |
+| Clawback | Negative incentive adjustment for lapsed policies |
+| Collection % | Percentage of renewal premiums actually collected |
+| `compute_agent_kpi` | PostgreSQL stored function that aggregates KPIs |
+| CSV | Comma Separated Values file format for data exchange |
+| Derived Variable | Formula-computed field used in payout calculation |
+| FYP | First Year Premium, policy year 1 new business |
+| Gate | Minimum threshold that must be met to earn incentive |
+| `hierarchy_path` | Materialized path string e.g. `1.5.12.47` for MLM |
+| iSeries | IBM AS400 server platform |
+| JWT | JSON Web Token for API authentication |
+| KPI | Key Performance Indicator, a measured metric |
+| Lapse | Policy not renewed on due date |
+| Life Asia | Policy administration system on AS400 |
+| Milestone | Achievement band label M-1, M-2, M-3 |
+| MLM Override | Manager's earnings from downline production |
+| NB | New Business, first year policy |
+| `node-cron` | Node.js library for scheduled tasks |
+| Payout Slab | Formula row defining incentive per milestone |
+| Penta | KGILS policy administration system |
+| Persistency | Percentage of policies renewed after year 1 |
+| Policy Year | Year 1 = FYP new business, Year 2+ = renewal |
+| Program | Time-bound incentive contest configuration |
+| Qualifying Rule | Gate condition using AND/OR logic |
+| Renewal | Premium payment for existing policy year 2+ |
+| Revival | Reinstatement of lapsed policy |
+| SAP FICO | SAP Finance module receiving payment files |
+| SFTP | Secure File Transfer Protocol for CSV exchange |
+| Staging Table | Temporary validation table before main insert |
+| Sum Assured | Insurance coverage amount |
+| `system_config` | Key-value table for runtime configuration |
+| UNNEST | PostgreSQL function for typed array bulk insert |
+| UPSERT | `INSERT` with `ON CONFLICT DO UPDATE` pattern |
+| Webhook | Real-time HTTP push from Penta on policy events |
