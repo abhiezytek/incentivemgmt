@@ -1,11 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yaml';
+import { swaggerSpec } from './src/config/swagger.js';
 
 import uploadRouter from './src/routes/upload.js';
 import programsRouter from './src/routes/programs.js';
@@ -42,13 +39,18 @@ app.use(express.json());
 app.use(maskResponse);
 
 // --- Swagger UI at /api/docs ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
-const specPath   = join(__dirname, '..', 'docs', 'api', 'openapi.yaml');
-const swaggerDoc = YAML.parse(readFileSync(specPath, 'utf8'));
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc, {
-  customSiteTitle: 'Incentive Mgmt API Docs',
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'Incentive System API Docs',
+  customCss: '.swagger-ui .topbar { background-color: #0D9488; }',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+  },
 }));
+
+// Expose raw JSON spec
+app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
