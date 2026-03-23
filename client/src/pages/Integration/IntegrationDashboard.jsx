@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 
 const API = import.meta.env.VITE_API_URL || '';
 const REFRESH_INTERVAL_MS = 30_000;
@@ -183,7 +183,7 @@ export default function IntegrationDashboard() {
                 <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">No file processing records</td></tr>
               )}
               {fileLog.map((f) => (
-                <>
+                <Fragment key={f.id}>
                   <tr
                     key={f.id}
                     className="cursor-pointer hover:bg-gray-50"
@@ -205,7 +205,7 @@ export default function IntegrationDashboard() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

@@ -130,13 +130,19 @@ router.get('/audit-log', async (req, res) => {
   }
 });
 
+// Whitelist mapping for staging table names
+const STG_TABLES = {
+  stg_agent_master: 'stg_agent_master',
+  stg_policy_transactions: 'stg_policy_transactions',
+};
+
 // ─────────────────────────────────────────────
 // GET /failed-records — staging records with errors
 // ─────────────────────────────────────────────
 
 router.get('/failed-records', async (req, res) => {
   try {
-    const table = req.query.table === 'stg_agent_master' ? 'stg_agent_master' : 'stg_policy_transactions';
+    const table = STG_TABLES[req.query.table] || STG_TABLES.stg_policy_transactions;
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
 
     const rows = await query(
@@ -159,7 +165,7 @@ router.get('/failed-records', async (req, res) => {
 
 router.post('/failed-records/:id/skip', async (req, res) => {
   try {
-    const table = req.query.table === 'stg_agent_master' ? 'stg_agent_master' : 'stg_policy_transactions';
+    const table = STG_TABLES[req.query.table] || STG_TABLES.stg_policy_transactions;
     const { id } = req.params;
 
     await pool.query(
