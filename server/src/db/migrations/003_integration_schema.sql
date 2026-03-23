@@ -42,7 +42,7 @@ CREATE TABLE file_processing_log (
 
 -- 3. Staging tables for inbound data validation
 CREATE TABLE stg_policy_transactions (
-  LIKE ins_policy_transactions INCLUDING ALL,
+  LIKE ins_policy_transactions INCLUDING DEFAULTS,
   stg_id        SERIAL,
   stg_status    VARCHAR(20) DEFAULT 'PENDING',  -- PENDING/VALID/INVALID/LOADED
   stg_error     TEXT,
@@ -86,10 +86,11 @@ CREATE TABLE api_clients (
   created_at    TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO api_clients (client_id, client_name, allowed_endpoints) VALUES
-('PENTA_SYS',    'KGILS Penta System',
+-- Seed rows — client_secret_hash must be set via application before use
+INSERT INTO api_clients (client_id, client_name, client_secret_hash, allowed_endpoints) VALUES
+('PENTA_SYS',    'KGILS Penta System',    'CHANGE_ME',
  ARRAY['/api/integration/penta/*']),
-('LIFEASIA_SYS', 'Life Asia AS400',
+('LIFEASIA_SYS', 'Life Asia AS400',        'CHANGE_ME',
  ARRAY['/api/integration/lifeasia/*']);
 
 -- 6. Outbound file log
