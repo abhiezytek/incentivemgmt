@@ -68,8 +68,8 @@ Environment variables: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 | `final_incentive`       | `total_incentive`                       | ins_incentive_results   |
 | `ins_programs`          | `incentive_programs`                    | 001_master_schema       |
 | `updated_at`            | Column does not exist                   | ins_incentive_results   |
-| `channel_id`            | Not in ins_incentive_results            | ins_incentive_results   |
-| `product_code`          | Not in ins_incentive_results            | ins_incentive_results   |
+| `channel_id`            | Not on this table; join via `ins_agents` | ins_incentive_results   |
+| `product_code`          | Not on this table; use `calc_breakdown` JSONB or join `ins_policy_transactions` | ins_incentive_results   |
 | `nb_premium`            | `nb_total_premium`                      | ins_agent_kpi_summary   |
 
 ---
