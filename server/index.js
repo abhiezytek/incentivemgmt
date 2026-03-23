@@ -18,6 +18,7 @@ import agentsRouter from './src/routes/agents.js';
 import persistencyDataRouter from './src/routes/persistencyData.js';
 import productsRouter from './src/routes/products.js';
 import incentiveRatesRouter from './src/routes/incentiveRates.js';
+import integrationRouter from './src/routes/integration.js';
 import { startSftpPollers } from './src/jobs/sftpPoller.js';
 import { startHierarchySync } from './src/jobs/hierarchySync.js';
 
@@ -47,6 +48,7 @@ app.use('/api/agents',             agentsRouter);
 app.use('/api/persistency-data',   persistencyDataRouter);
 app.use('/api/products',           productsRouter);
 app.use('/api/incentive-rates',    incentiveRatesRouter);
+app.use('/api/integration',        integrationRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
