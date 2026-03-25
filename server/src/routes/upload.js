@@ -16,7 +16,18 @@ function validateColumns(rows, required) {
   return missing.length ? `Missing columns: ${missing.join(', ')}` : null;
 }
 
-const isValidDate = (str) => str != null && str !== '' && !isNaN(Date.parse(str));
+/**
+ * Validate a date string is parseable and in YYYY-MM-DD format.
+ * Rejects ambiguous formats and out-of-range days.
+ */
+const isValidDate = (str) => {
+  if (str == null || str === '') return false;
+  const match = String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return !isNaN(Date.parse(str)); // allow other unambiguous formats
+  const [, y, m, d] = match.map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+};
 
 const VALID_PERSISTENCY_MONTHS = [13, 25, 37, 49, 61];
 
@@ -348,7 +359,7 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
           persistency_month: row.persistency_month,
           error: `VAL_010: persistency_month must be one of: ${VALID_PERSISTENCY_MONTHS.join(', ')}`
         });
-      } else if (!row.policies_due || Number(row.policies_due) < 0) {
+      } else if (row.policies_due == null || row.policies_due === '' || Number(row.policies_due) < 0) {
         invalidRows.push({
           row: index + 2,
           error: 'VAL_004: policies_due must be a positive number'
