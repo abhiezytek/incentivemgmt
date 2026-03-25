@@ -187,7 +187,7 @@ async function testPrograms() {
   });
 
   // T07b — Update program status via PATCH
-  await run('T07b', 'PATCH /programs/:id/status → ACTIVE (may fail validation)', async () => {
+  await run('T07b', 'PATCH /programs/:id/status → test status transition rules', async () => {
     // First try setting to CLOSED (DRAFT→CLOSED is allowed)
     const { status, data } = await api(`/programs/${state.newProgramId}/status`, {
       method: 'PATCH',
