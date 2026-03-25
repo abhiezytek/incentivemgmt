@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
+import { PageHeader, Button, Badge, Card, LoadingSpinner, EmptyState } from '../../components/ui';
 
 const API = import.meta.env.VITE_API_URL || '';
 const REFRESH_INTERVAL_MS = 30_000;
@@ -11,20 +12,22 @@ const fmtTs = (v) => {
   return d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-const statusColor = (s) => {
-  if (!s) return 'bg-gray-100 text-gray-600';
+const statusBadge = (s) => {
+  if (!s) return 'grey';
   const u = s.toUpperCase();
-  if (u === 'SUCCESS' || u === 'OK')   return 'bg-emerald-100 text-emerald-700';
-  if (u === 'PARTIAL')                 return 'bg-amber-100 text-amber-700';
-  if (u === 'FAILED' || u === 'ERROR') return 'bg-red-100 text-red-700';
-  return 'bg-gray-100 text-gray-600';
+  if (u === 'SUCCESS' || u === 'OK') return 'green';
+  if (u === 'PARTIAL') return 'yellow';
+  if (u === 'FAILED' || u === 'ERROR') return 'red';
+  return 'grey';
 };
 
-const badge = (s) => (
-  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(s)}`}>
-    {s || 'UNKNOWN'}
-  </span>
-);
+const healthDot = (s) => {
+  if (!s) return 'bg-gray-400';
+  const u = s.toUpperCase();
+  if (u === 'SUCCESS' || u === 'OK') return 'bg-success';
+  if (u === 'FAILED' || u === 'ERROR') return 'bg-error';
+  return 'bg-gray-400';
+};
 
 /* ── main component ────────────────────────────────────── */
 
@@ -89,268 +92,224 @@ export default function IntegrationDashboard() {
 
   /* ── render ─────────────────────────────────────────── */
 
-  if (loading) return <div className="flex h-64 items-center justify-center text-gray-400">Loading integration data…</div>;
+  if (loading) return (
+    <div className="flex h-64 items-center justify-center">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
 
   const s = status || {};
 
   return (
-    <div className="space-y-8 font-[Inter]">
-      {/* ── Header ──────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Integration Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">Real-time integration health &amp; monitoring</p>
-        </div>
-        <span className="text-xs text-gray-400">Auto-refreshes every 30 s</span>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Integration Dashboard"
+        subtitle="Real-time integration health & monitoring"
+        actions={<span className="text-xs text-text-muted">Auto-refreshes every 30s</span>}
+      />
 
-      {/* ── 1. STATUS CARDS ──────────────────────────── */}
+      {/* ── 1. SYSTEM HEALTH CARDS ── */}
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Life Asia SFTP */}
-        <StatusCard
-          title="Life Asia SFTP"
-          icon="📂"
-          status={s.lifeAsia?.status}
-          rows={[
-            ['Last file', s.lifeAsia?.lastFile || '—'],
-            ['Records', s.lifeAsia?.recordsProcessed],
-            ['Received', fmtTs(s.lifeAsia?.lastReceived)],
-          ]}
-        />
-        {/* KGILS Penta API */}
-        <StatusCard
-          title="KGILS Penta API"
-          icon="🔗"
-          status={s.penta?.status}
-          rows={[
-            ['Last call', fmtTs(s.penta?.lastCall)],
-            ['Duration', s.penta?.durationMs != null ? `${s.penta.durationMs} ms` : '—'],
-            ['Status', s.penta?.status || '—'],
-          ]}
-        />
-        {/* Hierarchy API */}
-        <StatusCard
-          title="Hierarchy API"
-          icon="🏢"
-          status={s.hierarchy?.status}
-          rows={[
-            ['Last sync', fmtTs(s.hierarchy?.lastSync || s.hierarchy?.lastCompleted)],
-            ['Agents synced', s.hierarchy?.agentsSynced],
-            ['Status', s.hierarchy?.status || '—'],
-          ]}
-        />
-        {/* Outbound Files */}
-        <StatusCard
-          title="Outbound Files"
-          icon="📤"
-          status={s.outbound?.status}
-          rows={[
-            ['Last file', s.outbound?.lastFile || '—'],
-            ['Target', s.outbound?.targetSystem || '—'],
-            ['Records', s.outbound?.recordCount],
-            ['Generated', fmtTs(s.outbound?.generatedAt)],
-          ]}
-        />
+        <HealthCard title="Life Asia SFTP" status={s.lifeAsia?.status} rows={[
+          ['Last file', s.lifeAsia?.lastFile || '—'],
+          ['Records', s.lifeAsia?.recordsProcessed],
+          ['Received', fmtTs(s.lifeAsia?.lastReceived)],
+        ]} />
+        <HealthCard title="KGILS Penta API" status={s.penta?.status} rows={[
+          ['Last call', fmtTs(s.penta?.lastCall)],
+          ['Duration', s.penta?.durationMs != null ? `${s.penta.durationMs} ms` : '—'],
+          ['Status', s.penta?.status || '—'],
+        ]} />
+        <HealthCard title="Hierarchy API" status={s.hierarchy?.status} rows={[
+          ['Last sync', fmtTs(s.hierarchy?.lastSync || s.hierarchy?.lastCompleted)],
+          ['Agents synced', s.hierarchy?.agentsSynced],
+          ['Status', s.hierarchy?.status || '—'],
+        ]} />
+        <HealthCard title="Outbound Files" status={s.outbound?.status} rows={[
+          ['Last file', s.outbound?.lastFile || '—'],
+          ['Target', s.outbound?.targetSystem || '—'],
+          ['Records', s.outbound?.recordCount],
+          ['Generated', fmtTs(s.outbound?.generatedAt)],
+        ]} />
       </section>
 
-      {/* ── 5. MANUAL TRIGGERS ───────────────────────── */}
+      {/* ── MANUAL TRIGGERS ── */}
       <section className="flex flex-wrap items-center gap-3">
-        <TriggerBtn label="Trigger SFTP Poll" onClick={() => trigger('sftp-poll', 'Triggering SFTP poll')} />
-        <TriggerBtn label="Trigger Hierarchy Sync" onClick={() => trigger('hierarchy-sync', 'Triggering hierarchy sync')} />
-        <TriggerBtn label="Reprocess Failed Records" onClick={() => trigger('reprocess', 'Reprocessing')} />
-        {triggerMsg && <span className="ml-2 text-sm text-teal-700">{triggerMsg}</span>}
+        <Button variant="secondary" onClick={() => trigger('sftp-poll', 'Triggering SFTP poll')}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+          Trigger SFTP Poll
+        </Button>
+        <Button variant="secondary" onClick={() => trigger('hierarchy-sync', 'Triggering hierarchy sync')}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /></svg>
+          Trigger Hierarchy Sync
+        </Button>
+        <Button variant="secondary" onClick={() => trigger('reprocess', 'Reprocessing')}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" /></svg>
+          Reprocess Failed
+        </Button>
+        {triggerMsg && <span className="ml-2 text-sm text-primary font-medium">{triggerMsg}</span>}
       </section>
 
-      {/* ── 2. FILE PROCESSING LOG ───────────────────── */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">Recent File Processing</h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">File Name</th>
-                <th className="px-4 py-3">Source</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3 text-right">Total</th>
-                <th className="px-4 py-3 text-right">OK</th>
-                <th className="px-4 py-3 text-right">Failed</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {fileLog.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">No file processing records</td></tr>
-              )}
-              {fileLog.map((f) => (
-                <Fragment key={f.id}>
-                  <tr
-                    key={f.id}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => setExpandedRow(expandedRow === f.id ? null : f.id)}
-                  >
-                    <td className="px-4 py-2 font-medium text-gray-900">{f.file_name}</td>
-                    <td className="px-4 py-2">{f.source_system}</td>
-                    <td className="px-4 py-2">{f.file_type}</td>
-                    <td className="px-4 py-2 text-right">{f.total_rows ?? '—'}</td>
-                    <td className="px-4 py-2 text-right">{f.valid_rows ?? f.inserted_rows ?? '—'}</td>
-                    <td className="px-4 py-2 text-right">{f.error_rows ?? '—'}</td>
-                    <td className="px-4 py-2">{badge(f.status)}</td>
-                    <td className="px-4 py-2 text-gray-500">{fmtTs(f.completed_at || f.started_at)}</td>
-                  </tr>
-                  {expandedRow === f.id && f.error_message && (
-                    <tr key={`${f.id}-err`}>
-                      <td colSpan={8} className="bg-red-50 px-6 py-3 text-xs text-red-700">
-                        <strong>Error:</strong> {f.error_message}
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* ── 3. API CALL LOG ──────────────────────────── */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-semibold text-gray-800">API Call Log</h2>
-          <select
-            value={auditSource}
-            onChange={(e) => setAuditSource(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-          >
-            <option value="">All sources</option>
-            <option value="PENTA">Penta</option>
-            <option value="LIFEASIA">Life Asia</option>
-            <option value="HIERARCHY">Hierarchy</option>
-          </select>
-        </div>
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Source</th>
-                <th className="px-4 py-3">Endpoint</th>
-                <th className="px-4 py-3 text-right">Records</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Duration</th>
-                <th className="px-4 py-3">Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {auditLog.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400">No audit records</td></tr>
-              )}
-              {auditLog.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2">{a.source_system}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{a.endpoint}</td>
-                  <td className="px-4 py-2 text-right">{a.records_processed ?? a.records_received ?? '—'}</td>
-                  <td className="px-4 py-2">{badge(a.status)}</td>
-                  <td className="px-4 py-2 text-right">{a.duration_ms != null ? `${a.duration_ms} ms` : '—'}</td>
-                  <td className="px-4 py-2 text-gray-500">{fmtTs(a.called_at)}</td>
+      {/* ── 2. FILE PROCESSING LOG ── */}
+      <Card title="Recent File Processing">
+        {fileLog.length === 0 ? (
+          <EmptyState message="No file processing records" />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full text-sm">
+              <thead className="bg-primary text-white text-left text-xs">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">File Name</th>
+                  <th className="px-4 py-3 font-semibold">Source</th>
+                  <th className="px-4 py-3 font-semibold">Type</th>
+                  <th className="px-4 py-3 font-semibold text-right">Total</th>
+                  <th className="px-4 py-3 font-semibold text-right">OK</th>
+                  <th className="px-4 py-3 font-semibold text-right">Failed</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* ── 4. FAILED RECORDS ────────────────────────── */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">
-          Failed Staging Records
-          {failedRecs.length > 0 && (
-            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-              {failedRecs.length}
-            </span>
-          )}
-        </h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">Policy #</th>
-                <th className="px-4 py-3">Agent</th>
-                <th className="px-4 py-3">Batch</th>
-                <th className="px-4 py-3">Row</th>
-                <th className="px-4 py-3">Error</th>
-                <th className="px-4 py-3">Loaded</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {failedRecs.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">No failed records 🎉</td></tr>
-              )}
-              {failedRecs.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2">{r.id}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{r.policy_number || '—'}</td>
-                  <td className="px-4 py-2">{r.agent_code || '—'}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{r.batch_id || '—'}</td>
-                  <td className="px-4 py-2">{r.row_number ?? '—'}</td>
-                  <td className="px-4 py-2 max-w-xs truncate text-red-600" title={r.stg_error}>{r.stg_error || '—'}</td>
-                  <td className="px-4 py-2 text-gray-500">{fmtTs(r.stg_loaded_at)}</td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => skipRecord(r.id)}
-                      className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300"
+              </thead>
+              <tbody>
+                {fileLog.map((f, idx) => (
+                  <Fragment key={f.id}>
+                    <tr
+                      className={`cursor-pointer border-t border-border transition-colors
+                        ${idx % 2 === 0 ? 'bg-surface' : 'bg-background'} hover:bg-primary-50`}
+                      onClick={() => setExpandedRow(expandedRow === f.id ? null : f.id)}
                     >
-                      Skip
-                    </button>
-                  </td>
+                      <td className="px-4 py-2 font-medium text-text-primary">{f.file_name}</td>
+                      <td className="px-4 py-2 text-text-secondary">{f.source_system}</td>
+                      <td className="px-4 py-2 text-text-secondary">{f.file_type}</td>
+                      <td className="px-4 py-2 text-right text-text-primary">{f.total_rows ?? '—'}</td>
+                      <td className="px-4 py-2 text-right text-text-primary">{f.valid_rows ?? f.inserted_rows ?? '—'}</td>
+                      <td className="px-4 py-2 text-right text-text-primary">{f.error_rows ?? '—'}</td>
+                      <td className="px-4 py-2"><Badge variant={statusBadge(f.status)}>{f.status || 'UNKNOWN'}</Badge></td>
+                      <td className="px-4 py-2 text-text-muted">{fmtTs(f.completed_at || f.started_at)}</td>
+                    </tr>
+                    {expandedRow === f.id && f.error_message && (
+                      <tr key={`${f.id}-err`}>
+                        <td colSpan={8} className="bg-red-50 px-6 py-3 text-xs text-error">
+                          <strong>Error:</strong> {f.error_message}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* ── 3. API CALL LOG ── */}
+      <Card title="API Call Log" action={
+        <select value={auditSource} onChange={(e) => setAuditSource(e.target.value)}
+          className="rounded-lg border border-border px-2 py-1 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none">
+          <option value="">All sources</option>
+          <option value="PENTA">Penta</option>
+          <option value="LIFEASIA">Life Asia</option>
+          <option value="HIERARCHY">Hierarchy</option>
+        </select>
+      }>
+        {auditLog.length === 0 ? (
+          <EmptyState message="No audit records" />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full text-sm">
+              <thead className="bg-primary text-white text-left text-xs">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Source</th>
+                  <th className="px-4 py-3 font-semibold">Endpoint</th>
+                  <th className="px-4 py-3 font-semibold text-right">Records</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold text-right">Duration</th>
+                  <th className="px-4 py-3 font-semibold">Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {auditLog.map((a, idx) => (
+                  <tr key={a.id} className={`border-t border-border transition-colors
+                    ${idx % 2 === 0 ? 'bg-surface' : 'bg-background'} hover:bg-primary-50`}>
+                    <td className="px-4 py-2 text-text-secondary">{a.source_system}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-text-primary">{a.endpoint}</td>
+                    <td className="px-4 py-2 text-right text-text-primary">{a.records_processed ?? a.records_received ?? '—'}</td>
+                    <td className="px-4 py-2"><Badge variant={statusBadge(a.status)}>{a.status || 'UNKNOWN'}</Badge></td>
+                    <td className="px-4 py-2 text-right text-text-secondary">{a.duration_ms != null ? `${a.duration_ms} ms` : '—'}</td>
+                    <td className="px-4 py-2 text-text-muted">{fmtTs(a.called_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* ── 4. FAILED RECORDS ── */}
+      <div className="rounded-lg border-l-4 border-l-error border border-border bg-surface p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-base font-bold text-text-primary">Failed Staging Records</h2>
+          {failedRecs.length > 0 && <Badge variant="red">{failedRecs.length}</Badge>}
         </div>
-      </section>
+        {failedRecs.length === 0 ? (
+          <EmptyState message="No failed records 🎉" />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full text-sm">
+              <thead className="bg-primary text-white text-left text-xs">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">ID</th>
+                  <th className="px-4 py-3 font-semibold">Policy #</th>
+                  <th className="px-4 py-3 font-semibold">Agent</th>
+                  <th className="px-4 py-3 font-semibold">Batch</th>
+                  <th className="px-4 py-3 font-semibold">Row</th>
+                  <th className="px-4 py-3 font-semibold">Error</th>
+                  <th className="px-4 py-3 font-semibold">Loaded</th>
+                  <th className="px-4 py-3 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failedRecs.map((r, idx) => (
+                  <tr key={r.id} className={`border-t border-border transition-colors
+                    ${idx % 2 === 0 ? 'bg-surface' : 'bg-background'} hover:bg-primary-50`}>
+                    <td className="px-4 py-2 text-text-primary">{r.id}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-text-primary">{r.policy_number || '—'}</td>
+                    <td className="px-4 py-2 text-text-secondary">{r.agent_code || '—'}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-text-secondary">{r.batch_id || '—'}</td>
+                    <td className="px-4 py-2 text-text-secondary">{r.row_number ?? '—'}</td>
+                    <td className="px-4 py-2 max-w-xs truncate text-error" title={r.stg_error}>{r.stg_error || '—'}</td>
+                    <td className="px-4 py-2 text-text-muted">{fmtTs(r.stg_loaded_at)}</td>
+                    <td className="px-4 py-2">
+                      <Button size="sm" variant="ghost" onClick={() => skipRecord(r.id)}>Skip</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-/* ── sub-components ──────────────────────────────────── */
+/* ── Health Card ──────────────────────────────────────── */
 
-function StatusCard({ title, icon, status, rows }) {
-  const ring =
-    status === 'SUCCESS' || status === 'OK'
-      ? 'border-l-emerald-500'
-      : status === 'FAILED' || status === 'ERROR'
-        ? 'border-l-red-500'
-        : status === 'PARTIAL'
-          ? 'border-l-amber-500'
-          : 'border-l-gray-300';
-
+function HealthCard({ title, status, rows }) {
   return (
-    <div className={`rounded-lg border border-gray-200 border-l-4 ${ring} bg-white p-5 shadow-sm`}>
+    <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
-        <span className="text-xl">{icon}</span>
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-        <span className="ml-auto">{badge(status)}</span>
+        <span className={`h-2.5 w-2.5 rounded-full ${healthDot(status)}`} />
+        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+        <span className="ml-auto"><Badge variant={statusBadge(status)}>{status || 'UNKNOWN'}</Badge></span>
       </div>
-      <dl className="space-y-1 text-xs text-gray-600">
+      <dl className="space-y-1 text-xs text-text-secondary">
         {rows.map(([label, value], i) => (
           <div key={i} className="flex justify-between">
-            <dt className="text-gray-400">{label}</dt>
-            <dd className="font-medium text-gray-700">{value ?? '—'}</dd>
+            <dt className="text-text-muted">{label}</dt>
+            <dd className="font-medium text-text-primary">{value ?? '—'}</dd>
           </div>
         ))}
       </dl>
     </div>
-  );
-}
-
-function TriggerBtn({ label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-    >
-      {label}
-    </button>
   );
 }
