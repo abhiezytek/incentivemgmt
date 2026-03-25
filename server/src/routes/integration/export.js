@@ -368,7 +368,10 @@ router.post('/sap-fico', async (req, res) => {
     }
 
     // --- Configuration ---
-    const companyCode = process.env.SAP_COMPANY_CODE || '1000';
+    const companyCode    = process.env.SAP_COMPANY_CODE    || '1000';
+    const glAccount      = process.env.SAP_GL_ACCOUNT      || '400001';
+    const paymentMethod  = process.env.SAP_PAYMENT_METHOD  || 'T'; // T = Bank Transfer
+    const sapFilePath    = process.env.SAP_FILE_PATH       || '/outbound/sap/';
     const currency = 'INR';
 
     const now = new Date();
@@ -394,10 +397,10 @@ router.post('/sap-fico', async (req, res) => {
         csvField(paymentDate),
         csvField(amount),
         csvField(`CC-${r.channel_code || ''}`),
-        csvField('400001'),
+        csvField(glAccount),
         csvField(r.region_code || ''),
         csvField(referenceDoc),
-        csvField('T'),
+        csvField(paymentMethod),
         csvField(currency),
         csvField(companyCode),
         csvField(narration),
@@ -415,7 +418,7 @@ router.post('/sap-fico', async (req, res) => {
       `INSERT INTO outbound_file_log
          (file_name, target_system, program_id, period_start, record_count, total_amount, file_path, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [fileName, 'SAP_FICO', programId, periodStart, rows.length, totalAmount, '/outbound/sap/', 'GENERATED']
+      [fileName, 'SAP_FICO', programId, periodStart, rows.length, totalAmount, sapFilePath, 'GENERATED']
     );
 
     // --- Update result status APPROVED → INITIATED ---
