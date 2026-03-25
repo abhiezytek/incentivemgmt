@@ -20,6 +20,13 @@ const fmtK = (n) => n >= 10000000
   ? `₹${(n/100000).toFixed(1)}L`
   : fmt(n);
 
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
 export default function Dashboard() {
   const [data,    setData]    = useState(null);
   const [period,  setPeriod]  = useState('');
@@ -63,7 +70,7 @@ export default function Dashboard() {
       <div className="rounded-xl bg-gradient-to-r from-primary to-primary-light p-6 text-white">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Good morning, Admin 👋</h1>
+            <h1 className="text-2xl font-bold">{getGreeting()}, Admin 👋</h1>
             <p className="mt-1 text-sm text-blue-100">
               {data.programs?.[0]?.name || 'Incentive Management'} · {period || 'Current Period'}
             </p>

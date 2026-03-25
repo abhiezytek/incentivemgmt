@@ -6,9 +6,9 @@ import {
 import { PageHeader, Button, Badge, StatCard, Card, LoadingSpinner, EmptyState } from '../components/ui'
 
 const PODIUM_STYLES = {
-  0: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-700', label: '🥇 Gold' },
-  1: { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-600', label: '🥈 Silver' },
-  2: { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-700', label: '🥉 Bronze' },
+  0: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-700', label: '🥇 Gold', medal: '🥇' },
+  1: { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-600', label: '🥈 Silver', medal: '🥈' },
+  2: { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-700', label: '🥉 Bronze', medal: '🥉' },
 }
 
 const BAR_COLORS = [
@@ -154,7 +154,7 @@ export default function Leaderboard() {
                     >
                       <td className="px-4 py-3 font-medium text-text-primary">
                         <span className="inline-flex items-center gap-1.5">
-                          {idx < 3 && <span className="text-base">{['🥇','🥈','🥉'][idx]}</span>}
+                          {idx < 3 && <span className="text-base">{PODIUM_STYLES[idx].medal}</span>}
                           {idx + 1}
                         </span>
                       </td>

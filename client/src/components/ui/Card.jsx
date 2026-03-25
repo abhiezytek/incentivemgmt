@@ -3,11 +3,12 @@ export default function Card({
   subtitle,
   action,
   children,
+  accent = true,
   className = '',
 }) {
   return (
     <div
-      className={`rounded-lg border border-border bg-surface shadow-sm border-l-4 border-l-primary ${className}`}
+      className={`rounded-lg border border-border bg-surface shadow-sm ${accent ? 'border-l-4 border-l-primary' : ''} ${className}`}
     >
       {(title || action) && (
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
