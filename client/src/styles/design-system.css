@@ -1,0 +1,46 @@
+/* ─── Design System ─── */
+
+@theme {
+  --color-primary: #1E40AF;
+  --color-primary-light: #3B82F6;
+  --color-primary-dark: #1E3A8A;
+  --color-primary-50: #EFF6FF;
+  --color-accent: #64748B;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+}
+
+:root {
+  /* Semantic tokens */
+  --ds-primary: #1E40AF;
+  --ds-primary-light: #3B82F6;
+  --ds-primary-dark: #1E3A8A;
+  --ds-primary-50: #EFF6FF;
+  --ds-accent: #64748B;
+  --ds-bg: #F8FAFC;
+  --ds-surface: #FFFFFF;
+  --ds-border: #E2E8F0;
+  --ds-text: #0F172A;
+  --ds-text-secondary: #475569;
+  --ds-text-muted: #94A3B8;
+  --ds-success: #16A34A;
+  --ds-warning: #D97706;
+  --ds-error: #DC2626;
+  --ds-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --ds-radius: 8px;
+  --ds-radius-sm: 4px;
+  --ds-radius-lg: 12px;
+}
+
+/* Spinner animation */
+@keyframes ds-spin {
+  to { transform: rotate(360deg); }
+}
