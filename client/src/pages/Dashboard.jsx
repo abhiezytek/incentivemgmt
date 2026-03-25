@@ -2,15 +2,15 @@
 import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend
+  ResponsiveContainer, PieChart, Pie, Legend, Cell
 } from 'recharts';
+import { StatCard, Badge, LoadingSpinner, Card } from '../components/ui';
 
-const CHANNEL_COLORS  = ['#0D9488','#0EA5E9','#8B5CF6','#F59E0B','#EF4444'];
-const PRODUCT_COLORS  = ['#0D9488','#14B8A6','#5EEAD4','#0EA5E9','#8B5CF6'];
-const PROGRAM_STATUS  = {
-  ACTIVE: 'bg-green-100 text-green-700',
-  DRAFT:  'bg-yellow-100 text-yellow-700',
-  CLOSED: 'bg-slate-100 text-slate-500',
+const BLUE_SHADES = ['#1E40AF', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD'];
+const PROGRAM_STATUS = {
+  ACTIVE: 'green',
+  DRAFT: 'yellow',
+  CLOSED: 'grey',
 };
 
 const fmt  = (n) => `₹${Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0})}`;
@@ -46,7 +46,9 @@ export default function Dashboard() {
   useEffect(() => { fetchDashboard(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading || !data) return (
-    <div className="p-6 text-slate-400 animate-pulse">Loading dashboard…</div>
+    <div className="flex items-center justify-center py-32">
+      <LoadingSpinner size="lg" />
+    </div>
   );
 
   const maxIncentive = Math.max(
@@ -55,120 +57,81 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            Welcome back 👋
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Incentive performance overview · {period || 'Current Period'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            value={program}
-            onChange={e => setProgram(e.target.value)}
-            placeholder="Program ID"
-            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-28
-                       focus:ring-2 focus:ring-teal-500 outline-none"
-          />
-          <input
-            type="date"
-            value={period}
-            onChange={e => setPeriod(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm
-                       focus:ring-2 focus:ring-teal-500 outline-none"
-          />
-          <button
-            onClick={fetchDashboard}
-            className="bg-teal-600 text-white px-4 py-2 rounded-lg
-                       text-sm font-medium hover:bg-teal-700"
-          >
-            Apply
-          </button>
+      {/* ── Blue gradient banner ── */}
+      <div className="rounded-xl bg-gradient-to-r from-primary to-primary-light p-6 text-white">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Good morning, Admin 👋</h1>
+            <p className="mt-1 text-sm text-blue-100">
+              {data.programs?.[0]?.name || 'Incentive Management'} · {period || 'Current Period'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              value={program}
+              onChange={e => setProgram(e.target.value)}
+              placeholder="Program ID"
+              className="rounded-lg border border-white/30 bg-white/20 px-3 py-1.5 text-sm text-white
+                         placeholder:text-blue-200 focus:ring-2 focus:ring-white/50 outline-none w-28"
+            />
+            <input
+              type="date"
+              value={period}
+              onChange={e => setPeriod(e.target.value)}
+              className="rounded-lg border border-white/30 bg-white/20 px-3 py-1.5 text-sm text-white
+                         focus:ring-2 focus:ring-white/50 outline-none"
+            />
+            <button
+              onClick={fetchDashboard}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-blue-50"
+            >
+              Apply
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── KPI Cards ── */}
+      {/* ── KPI StatCards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            label: 'Total Incentive Pool',
-            value: fmtK(data.kpi.total_pool),
-            sub:   `${data.kpi.paid_count} agents paid`,
-            icon:  '💰',
-            trend: data.kpi.pool_growth,
-            color: 'teal',
-          },
-          {
-            label: 'Total NB Premium',
-            value: fmtK(data.kpi.total_nb_premium),
-            sub:   `${data.kpi.nb_policy_count} policies`,
-            icon:  '📋',
-            trend: data.kpi.nb_growth,
-            color: 'blue',
-          },
-          {
-            label: 'Avg Achievement %',
-            value: `${Number(data.kpi.avg_achievement||0).toFixed(1)}%`,
-            sub:   `Target: ${fmtK(data.kpi.total_target)}`,
-            icon:  '🎯',
-            trend: data.kpi.achievement_trend,
-            color: 'purple',
-          },
-          {
-            label: 'Avg 13M Persistency',
-            value: `${Number(data.kpi.avg_persistency_13m||0).toFixed(1)}%`,
-            sub:   `${data.kpi.agents_below_gate} below gate`,
-            icon:  '🔄',
-            trend: data.kpi.persistency_trend,
-            color: 'orange',
-          },
-        ].map((c) => (
-          <div
-            key={c.label}
-            className="bg-white rounded-xl border border-slate-200 p-5
-                       hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-3xl">{c.icon}</span>
-              {c.trend != null && (
-                <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                    ${c.trend >= 0
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-600'}`}
-                >
-                  {c.trend >= 0 ? '▲' : '▼'} {Math.abs(c.trend).toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 font-medium">{c.label}</p>
-            <p className={`text-2xl font-bold mt-0.5 text-${c.color}-600`}>
-              {c.value}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">{c.sub}</p>
-          </div>
-        ))}
+        <StatCard
+          label="Total Incentive Pool"
+          value={fmtK(data.kpi.total_pool)}
+          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          trend={data.kpi.pool_growth}
+          color="blue"
+        />
+        <StatCard
+          label="Total NB Premium"
+          value={fmtK(data.kpi.total_nb_premium)}
+          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+          trend={data.kpi.nb_growth}
+          color="grey"
+        />
+        <StatCard
+          label="Avg Achievement %"
+          value={`${Number(data.kpi.avg_achievement||0).toFixed(1)}%`}
+          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z M9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625z M16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>}
+          trend={data.kpi.achievement_trend}
+          color="blue"
+        />
+        <StatCard
+          label="Active Agents"
+          value={data.kpi.paid_count || '—'}
+          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
+          trend={data.kpi.persistency_trend}
+          color="grey"
+        />
       </div>
 
       {/* ── Charts Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-
-        {/* Bar Chart — Incentive Pool by Channel */}
-        <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-700">
-              Incentive Pool by Channel
-            </h2>
-            <span className="text-xs text-slate-400">This Period</span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
+        {/* Bar Chart — Channel Incentive */}
+        <Card title="Channel Incentive Breakdown" subtitle="Self vs MLM Override" className="lg:col-span-3">
+          <ResponsiveContainer width="100%" height={240}>
             <BarChart data={data.channelBreakdown} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
               <XAxis dataKey="channel" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis
                 tickFormatter={(v) => `₹${(v/100000).toFixed(0)}L`}
@@ -181,27 +144,17 @@ export default function Dashboard() {
               <Legend
                 iconType="circle"
                 iconSize={8}
-                formatter={(v) => <span className="text-xs text-slate-500">{v}</span>}
+                formatter={(v) => <span className="text-xs text-text-secondary">{v}</span>}
               />
-              <Bar dataKey="self_incentive" name="Self" stackId="a" radius={[0,0,0,0]}>
-                {(data.channelBreakdown || []).map((_, i) => (
-                  <Cell key={i} fill={CHANNEL_COLORS[i % CHANNEL_COLORS.length]} />
-                ))}
-              </Bar>
-              <Bar dataKey="override_incentive" name="MLM Override" stackId="a" radius={[6,6,0,0]} fill="#5EEAD4" />
+              <Bar dataKey="self_incentive" name="Self" stackId="a" fill="#1E40AF" radius={[0,0,0,0]} />
+              <Bar dataKey="override_incentive" name="MLM Override" stackId="a" fill="#64748B" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
 
-        {/* Donut Chart — Product-wise NB Premium */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-700">
-              NB Premium Mix
-            </h2>
-            <span className="text-xs text-slate-400">By Product</span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
+        {/* Donut — Product Mix */}
+        <Card title="NB Premium Mix" subtitle="By Product" className="lg:col-span-2">
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie
                 data={data.productMix}
@@ -214,7 +167,7 @@ export default function Dashboard() {
                 paddingAngle={3}
               >
                 {(data.productMix || []).map((_, i) => (
-                  <Cell key={i} fill={PRODUCT_COLORS[i % PRODUCT_COLORS.length]} />
+                  <Cell key={i} fill={BLUE_SHADES[i % BLUE_SHADES.length]} />
                 ))}
               </Pie>
               <Tooltip
@@ -224,116 +177,100 @@ export default function Dashboard() {
               <Legend
                 iconType="circle"
                 iconSize={8}
-                formatter={(v) => <span className="text-xs text-slate-500">{v}</span>}
+                formatter={(v) => <span className="text-xs text-text-secondary">{v}</span>}
               />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
       </div>
 
       {/* ── Bottom Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Top 5 Agents */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-700">🏆 Top Performers</h2>
-            <a href="/leaderboard" className="text-xs text-teal-600 hover:underline">View all →</a>
-          </div>
+        <Card
+          title="Top Performers"
+          action={<a href="/incentive/leaderboard" className="text-xs font-medium text-primary hover:underline">View all →</a>}
+        >
           <div className="space-y-3">
             {(data.topAgents || []).map((a, i) => (
               <div key={a.agent_code} className="flex items-center gap-3">
-                <span className="text-lg w-6 text-center shrink-0">
-                  {['🥇','🥈','🥉','4️⃣','5️⃣'][i]}
-                </span>
+                <Badge variant={i === 0 ? 'yellow' : i === 1 ? 'grey' : i === 2 ? 'red' : 'blue'}>
+                  #{i + 1}
+                </Badge>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-800 truncate">
+                  <p className="text-xs font-semibold text-text-primary truncate">
                     {a.agent_name}
                   </p>
-                  <div className="w-full bg-slate-100 rounded-full h-1 mt-1">
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
                     <div
-                      className="bg-teal-500 h-1 rounded-full"
+                      className="bg-primary h-1.5 rounded-full"
                       style={{ width: `${(Number(a.total_incentive) / maxIncentive * 100).toFixed(0)}%` }}
                     />
                   </div>
                 </div>
-                <span className="text-xs font-bold text-teal-700 shrink-0">
+                <span className="text-xs font-bold text-primary shrink-0">
                   {fmtK(Number(a.total_incentive))}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Active Programs */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-700">📌 Active Programs</h2>
-            <a href="/admin/plans" className="text-xs text-teal-600 hover:underline">Manage →</a>
-          </div>
+        <Card
+          title="Active Programs"
+          action={<a href="/admin/plans" className="text-xs font-medium text-primary hover:underline">Manage →</a>}
+        >
           <div className="space-y-3">
             {(data.programs || []).map((p) => (
               <div
                 key={p.id}
-                className="flex items-start justify-between border border-slate-100
-                           rounded-lg p-2.5 hover:bg-slate-50 transition-colors"
+                className="flex items-start justify-between rounded-lg border border-border p-2.5 hover:bg-background transition-colors"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-800 truncate">{p.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs font-semibold text-text-primary truncate">{p.name}</p>
+                  <p className="text-xs text-text-muted mt-0.5">
                     {p.start_date} → {p.end_date}
                   </p>
-                  <p className="text-xs text-slate-400">{p.channel}</p>
+                  <p className="text-xs text-text-muted">{p.channel}</p>
                 </div>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ml-2
-                    ${PROGRAM_STATUS[p.status] || 'bg-slate-100 text-slate-500'}`}
-                >
+                <Badge variant={PROGRAM_STATUS[p.status] || 'grey'}>
                   {p.status}
-                </span>
+                </Badge>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
-        {/* Recent Activity Feed */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-700">🕐 Recent Activity</h2>
-          </div>
+        {/* Activity Feed */}
+        <Card title="Recent Activity">
           <div className="space-y-3">
             {(data.recentActivity || []).map((act, i) => (
               <div key={i} className="flex gap-3 items-start">
-                <div className="w-7 h-7 rounded-full bg-teal-100 flex items-center
-                                justify-center text-sm shrink-0">
-                  {act.icon}
-                </div>
+                <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs text-slate-700 font-medium">{act.message}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{act.time}</p>
+                  <p className="text-xs text-text-primary font-medium">{act.message}</p>
+                  <p className="text-xs text-text-muted mt-0.5">{act.time}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* ── Payout Status Bar ── */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-700">
-            Payout Pipeline Status
-          </h2>
-          <a href="/payout/disbursement" className="text-xs text-teal-600 hover:underline">
-            Go to Disbursement →
-          </a>
-        </div>
-        <div className="flex gap-0 rounded-lg overflow-hidden h-8 border border-slate-200">
+      {/* ── Payout Pipeline ── */}
+      <Card title="Payout Pipeline Status" action={
+        <a href="/payout/disbursement" className="text-xs font-medium text-primary hover:underline">
+          Go to Disbursement →
+        </a>
+      }>
+        <div className="flex gap-0 rounded-lg overflow-hidden h-8 border border-border">
           {[
-            { label:'Calculated', key:'DRAFT',     color:'bg-slate-400' },
-            { label:'Approved',   key:'APPROVED',  color:'bg-blue-500'  },
-            { label:'Initiated',  key:'INITIATED', color:'bg-yellow-400'},
-            { label:'Paid',       key:'PAID',      color:'bg-green-500' },
+            { label:'Calculated', key:'DRAFT',     color:'bg-accent' },
+            { label:'Approved',   key:'APPROVED',  color:'bg-primary'  },
+            { label:'Initiated',  key:'INITIATED', color:'bg-warning'},
+            { label:'Paid',       key:'PAID',      color:'bg-success' },
           ].map((s) => {
             const count = data.pipelineStatus?.[s.key]?.count || 0;
             const total = Object.values(data.pipelineStatus || {})
@@ -342,9 +279,7 @@ export default function Dashboard() {
             return (
               <div
                 key={s.key}
-                className={`${s.color} flex items-center justify-center
-                             text-white text-xs font-medium transition-all
-                             ${width < 5 ? 'hidden' : ''}`}
+                className={`${s.color} flex items-center justify-center text-white text-xs font-medium transition-all ${width < 5 ? 'hidden' : ''}`}
                 style={{ width: `${width}%` }}
                 title={`${s.label}: ${count} agents`}
               >
@@ -355,18 +290,18 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-4 mt-2">
           {[
-            { label:'Calculated', color:'bg-slate-400' },
-            { label:'Approved',   color:'bg-blue-500'  },
-            { label:'Initiated',  color:'bg-yellow-400'},
-            { label:'Paid',       color:'bg-green-500' },
+            { label:'Calculated', color:'bg-accent' },
+            { label:'Approved',   color:'bg-primary'  },
+            { label:'Initiated',  color:'bg-warning'},
+            { label:'Paid',       color:'bg-success' },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${s.color}`} />
-              <span className="text-xs text-slate-500">{s.label}</span>
+              <span className="text-xs text-text-secondary">{s.label}</span>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
     </div>
   );
