@@ -23,7 +23,7 @@ function validateColumns(rows, required) {
 const isValidDate = (str) => {
   if (str == null || str === '') return false;
   const match = String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return !isNaN(Date.parse(str)); // allow other unambiguous formats
+  if (!match) return false; // reject non-YYYY-MM-DD formats
   const [, y, m, d] = match.map(Number);
   const date = new Date(y, m - 1, d);
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
@@ -359,7 +359,7 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
           persistency_month: row.persistency_month,
           error: `VAL_010: persistency_month must be one of: ${VALID_PERSISTENCY_MONTHS.join(', ')}`
         });
-      } else if (row.policies_due == null || row.policies_due === '' || Number(row.policies_due) < 0) {
+      } else if (row.policies_due == null || row.policies_due === '' || isNaN(Number(row.policies_due)) || Number(row.policies_due) < 0) {
         invalidRows.push({
           row: index + 2,
           error: 'VAL_004: policies_due must be a positive number'
