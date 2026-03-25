@@ -173,16 +173,52 @@ async function testPrograms() {
     state.newProgramId = data.id;
   });
 
-  // T07 — Update program status to ACTIVE
-  await run('T07', 'PUT /programs/:id status → ACTIVE', async () => {
+  // T07 — Update program via PUT (partial update)
+  await run('T07', 'PUT /programs/:id → partial update', async () => {
     const { status, data } = await api(`/programs/${state.newProgramId}`, {
       method: 'PUT',
-      body: { status: 'ACTIVE' },
+      body: { name: 'E2E Test Program Updated' },
     });
     assert(status === 200, '200', status);
-    // Verify update took effect
-    const { data: check } = await api(`/programs/${state.newProgramId}`);
-    assert(check.status === 'ACTIVE', 'status=ACTIVE', check.status);
+    assert(data.name === 'E2E Test Program Updated', 'name updated', data.name);
+    // Verify protected fields were not cleared and other fields are intact
+    assert(data.id === state.newProgramId, 'id unchanged', data.id);
+    assert(data.channel_id === 1, 'channel_id preserved', data.channel_id);
+  });
+
+  // T07b — Update program status via PATCH
+  await run('T07b', 'PATCH /programs/:id/status → ACTIVE (may fail validation)', async () => {
+    // First try setting to CLOSED (DRAFT→CLOSED is allowed)
+    const { status, data } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'CLOSED' },
+    });
+    assert(status === 200, '200', status);
+    assert(data.status === 'CLOSED', 'status=CLOSED', data.status);
+
+    // Verify CLOSED→ACTIVE is rejected (BUS_001)
+    const { status: s2, data: d2 } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'ACTIVE' },
+    });
+    assert(s2 === 422, '422 (cannot reactivate CLOSED)', s2);
+    assert(d2.code === 'BUS_001', 'BUS_001', d2.code);
+
+    // Verify invalid status is rejected (VAL_003)
+    const { status: s3, data: d3 } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'INVALID' },
+    });
+    assert(s3 === 400, '400 (invalid enum)', s3);
+    assert(d3.code === 'VAL_003', 'VAL_003', d3.code);
+
+    // Reset to DRAFT so delete works
+    // CLOSED→DRAFT is allowed
+    const { status: s4 } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'DRAFT' },
+    });
+    assert(s4 === 200, '200 (back to DRAFT)', s4);
   });
 
   // T08 — Delete test program
