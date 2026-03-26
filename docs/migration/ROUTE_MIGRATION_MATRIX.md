@@ -2,6 +2,8 @@
 
 > Maps every Node.js route to its target .NET controller/action.
 > Priority: P1 = Wave 1 (read-only), P2 = Wave 2 (config), P3 = Wave 3 (workflow), P4 = Wave 4 (calc/export/integration)
+>
+> **Wave 1 Status**: ✅ = Migrated to .NET | ⬜ = Not yet migrated
 
 ---
 
@@ -9,10 +11,10 @@
 
 | Node Route File | HTTP Method | Endpoint | Purpose | Target .NET Controller | Target Action | Priority | Notes |
 |-----------------|-------------|----------|---------|----------------------|---------------|----------|-------|
-| `programs.js` | GET | `/api/programs` | List all programs | `ProgramsController` | `GetAll()` | P1 | Read-only |
-| `programs.js` | GET | `/api/programs/:id` | Get single program | `ProgramsController` | `GetById(int id)` | P1 | Read-only |
-| `programs.js` | GET | `/api/programs/:id/summary` | Program summary with KPIs/payouts/results | `ProgramsController` | `GetSummary(int id)` | P1 | Read-only, complex query |
-| `programs.js` | GET | `/api/programs/:id/preview` | Calculation preview | `ProgramsController` | `GetPreview(int id)` | P2 | Read-only but config-adjacent |
+| `programs.js` | GET | `/api/programs` | List all programs | `ProgramsController` | `GetAll()` | P1 | ✅ Migrated Wave 1 |
+| `programs.js` | GET | `/api/programs/:id` | Get single program | `ProgramsController` | `GetById(int id)` | P1 | ✅ Migrated Wave 1 |
+| `programs.js` | GET | `/api/programs/:id/summary` | Program summary with KPIs/payouts/results | `ProgramsController` | `GetSummary(int id)` | P1 | Read-only |
+| `programs.js` | GET | `/api/programs/:id/preview` | Calculation preview | `ProgramsController` | `GetPreview(int id)` | P2 | ✅ Migrated Wave 1 |
 | `programs.js` | POST | `/api/programs` | Create program | `ProgramsController` | `Create(CreateProgramRequest)` | P2 | Config write |
 | `programs.js` | PUT | `/api/programs/:id` | Update program | `ProgramsController` | `Update(int id, UpdateProgramRequest)` | P2 | Config write |
 | `programs.js` | PATCH | `/api/programs/:id/status` | Change status (DRAFT→ACTIVE→CLOSED) | `ProgramsController` | `ChangeStatus(int id, StatusRequest)` | P2 | Status transition validation |
@@ -75,7 +77,7 @@
 | Node Route File | HTTP Method | Endpoint | Purpose | Target .NET Controller | Target Action | Priority | Notes |
 |-----------------|-------------|----------|---------|----------------------|---------------|----------|-------|
 | `dashboard.js` | GET | `/api/dashboard/summary` | 7-section dashboard | `DashboardController` | `GetSummary(...)` | P1 | Complex aggregation query |
-| `executiveSummary.js` | GET | `/api/dashboard/executive-summary` | Executive KPI cards | `DashboardController` | `GetExecutiveSummary()` | P1 | Read-only |
+| `executiveSummary.js` | GET | `/api/dashboard/executive-summary` | Executive KPI cards | `DashboardController` | `GetExecutiveSummary()` | P1 | ✅ Migrated Wave 1 |
 | `leaderboard.js` | GET | `/api/leaderboard` | Agent ranking | `LeaderboardController` | `Get(...)` | P1 | Read-only, filtered |
 
 ## Workflow Routes
@@ -107,11 +109,11 @@
 | `exceptionLog.js` | GET | `/api/exception-log` | List exceptions | `ExceptionLogController` | `GetAll(...)` | P1 | Read-only |
 | `exceptionLog.js` | GET | `/api/exception-log/:id` | Get exception detail | `ExceptionLogController` | `GetById(int id)` | P1 | Read-only |
 | `exceptionLog.js` | POST | `/api/exception-log/:id/resolve` | Resolve exception | `ExceptionLogController` | `Resolve(int id, ...)` | P3 | Status transition |
-| `notifications.js` | GET | `/api/notifications` | List notifications | `NotificationsController` | `GetAll(...)` | P1 | Read-only |
-| `notifications.js` | POST | `/api/notifications/:id/read` | Mark read | `NotificationsController` | `MarkRead(int id)` | P2 | Simple update |
-| `notifications.js` | POST | `/api/notifications/mark-all-read` | Mark all read | `NotificationsController` | `MarkAllRead()` | P2 | Bulk update |
-| `systemStatus.js` | GET | `/api/system-status/summary` | System health | `SystemStatusController` | `GetSummary()` | P1 | Read-only |
-| `orgDomainMapping.js` | GET | `/api/org-domain-mapping` | Org mapping view | `OrgDomainMappingController` | `Get(...)` | P1 | Read-only |
+| `notifications.js` | GET | `/api/notifications` | List notifications | `NotificationsController` | `GetAll(...)` | P1 | ✅ Migrated Wave 1 |
+| `notifications.js` | POST | `/api/notifications/:id/read` | Mark read | `NotificationsController` | `MarkRead(int id)` | P2 | ✅ Migrated Wave 1 |
+| `notifications.js` | POST | `/api/notifications/mark-all-read` | Mark all read | `NotificationsController` | `MarkAllRead()` | P2 | ✅ Migrated Wave 1 |
+| `systemStatus.js` | GET | `/api/system-status/summary` | System health | `SystemStatusController` | `GetSummary()` | P1 | ✅ Migrated Wave 1 |
+| `orgDomainMapping.js` | GET | `/api/org-domain-mapping` | Org mapping view | `OrgDomainMappingController` | `Get(...)` | P1 | ✅ Migrated Wave 1 |
 | `kpiConfig.js` | GET | `/api/kpi-config/registry` | KPI registry | `KpiConfigController` | `GetRegistry()` | P1 | Read-only |
 | `kpiConfig.js` | POST | `/api/kpi-config/:id/validate` | Validate KPI | `KpiConfigController` | `Validate(int id)` | P2 | Validation only |
 | `kpiConfig.js` | GET | `/api/kpi-config/:id/summary` | KPI summary | `KpiConfigController` | `GetSummary(int id)` | P1 | Read-only |
