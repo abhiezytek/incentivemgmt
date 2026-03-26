@@ -315,3 +315,25 @@ Error: 401 if credentials invalid
 6. **Error responses vary**: Some routes use `apiError()` (standardized), others return `{ error: "message" }` directly. Must match per-route.
 7. **CSV export**: Oracle/SAP exports set `Content-Type: text/csv` and `Content-Disposition: attachment`. Must match headers exactly.
 8. **Policy masking**: Response middleware masks policy numbers. The .NET equivalent must apply the same rules with the same key names and masking algorithm.
+
+---
+
+## Wave 4 Parity Status per Endpoint Group
+
+| Endpoint Group | Parity Status | Notes |
+|---|---|---|
+| Programs (CRUD/status/summary/preview) | ✅ Full | Waves 1-2 |
+| KPI Config (registry/validate/summary) | ✅ Full | Wave 2 |
+| Dashboard (executive-summary) | ✅ Full | Wave 1 |
+| System Status / Notifications / Org Mapping | ✅ Full | Wave 1 |
+| Review Adjustments (7 endpoints) | ✅ Full | Wave 3 — additive-only |
+| Exception Log (3 endpoints) | ✅ Full | Wave 3 |
+| Uploads (6 CSV upload endpoints) | ✅ Full | Wave 4 — validation parity documented |
+| Calculation (run/results/single) | ✅ Full | Wave 4 — engine parity documented |
+| Incentive Results (stage/summary/list/approve/pay) | ✅ Full | Wave 4 — status pipeline preserved |
+| Export (Oracle AP / SAP FICO / history) | ✅ Full | Wave 4 — CSV format parity |
+| Payouts (rules + slabs CRUD) | ✅ Full | Wave 4 |
+| Integration (Penta/LifeAsia/status/triggers) | ✅ Full | Wave 4 — trigger-only for SFTP/hierarchy |
+| Data (agents/products/groups/leaderboard/dashboard) | ✅ Full | Wave 4 |
+| Auth (system-token) | ⚠️ Partial | Placeholder — matches Node's placeholder userAuth |
+| Background Jobs (SFTP/hierarchy) | ⚠️ Deferred | Trigger endpoints available, no auto-scheduling |
