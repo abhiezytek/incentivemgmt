@@ -56,6 +56,20 @@ tags:
   description: Formula-driven derived calculation variables
 - name: Groups
   description: User groups and team member management
+- name: Review Adjustments
+  description: Review and adjust incentive results
+- name: Exception Log
+  description: Operational exception monitoring and resolution
+- name: Executive Dashboard
+  description: Executive-level summary and KPIs
+- name: System Status
+  description: System health and integration monitoring
+- name: Notifications
+  description: Notification events management
+- name: Org & Domain Mapping
+  description: Organizational hierarchy mapping
+- name: KPI Config
+  description: KPI configuration helpers
 paths:
   /health:
     get:
@@ -4280,6 +4294,1048 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: Internal server error
+  /review-adjustments:
+    get:
+      tags:
+      - Review Adjustments
+      summary: List review adjustment rows
+      description: Retrieves a list of incentive review adjustment rows filtered by program, period, channel, or status.
+      operationId: listReviewAdjustments
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: periodStart
+        in: query
+        required: false
+        description: Filter by period start date
+        schema:
+          type: string
+          format: date
+      - name: channel
+        in: query
+        required: false
+        description: Filter by channel
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by status
+        schema:
+          type: string
+      - name: search
+        in: query
+        required: false
+        description: Search by agent name or code
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of results to return
+        schema:
+          type: integer
+          default: 50
+      - name: offset
+        in: query
+        required: false
+        description: Number of results to skip
+        schema:
+          type: integer
+          default: 0
+      responses:
+        '200':
+          description: List of review adjustment rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewAdjustmentRow'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /review-adjustments/{id}:
+    get:
+      tags:
+      - Review Adjustments
+      summary: Get a review adjustment row
+      description: Retrieves detailed information about a single review adjustment row by its ID.
+      operationId: getReviewAdjustment
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Review adjustment row ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Review adjustment row details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewAdjustmentRow'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /review-adjustments/{id}/adjust:
+    post:
+      tags:
+      - Review Adjustments
+      summary: Apply an adjustment
+      description: Applies an incentive adjustment to a review row.
+      operationId: adjustReviewAdjustment
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Review adjustment row ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                reason:
+                  type: string
+                notes:
+                  type: string
+                adjustedBy:
+                  type: string
+      responses:
+        '200':
+          description: Adjustment applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncentiveAdjustment'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /review-adjustments/{id}/hold:
+    post:
+      tags:
+      - Review Adjustments
+      summary: Place a hold on a review row
+      description: Places a hold on a review adjustment row to prevent further processing.
+      operationId: holdReviewAdjustment
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Review adjustment row ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                heldBy:
+                  type: string
+      responses:
+        '200':
+          description: Hold placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewAction'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /review-adjustments/{id}/release:
+    post:
+      tags:
+      - Review Adjustments
+      summary: Release a hold on a review row
+      description: Releases a previously placed hold on a review adjustment row.
+      operationId: releaseReviewAdjustment
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Review adjustment row ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                releasedBy:
+                  type: string
+      responses:
+        '200':
+          description: Hold released
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewAction'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /review-adjustments/batch-approve:
+    post:
+      tags:
+      - Review Adjustments
+      summary: Batch approve review rows
+      description: Approves multiple review adjustment rows in a single operation.
+      operationId: batchApproveReviewAdjustments
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                approvedBy:
+                  type: string
+      responses:
+        '200':
+          description: Batch approval result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  approved:
+                    type: integer
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /review-adjustments/{id}/audit:
+    get:
+      tags:
+      - Review Adjustments
+      summary: Get audit trail for a review row
+      description: Retrieves the audit trail of all actions performed on a review adjustment row.
+      operationId: getReviewAdjustmentAudit
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Review adjustment row ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Audit trail
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewAction'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /exception-log:
+    get:
+      tags:
+      - Exception Log
+      summary: List operational exceptions
+      description: Retrieves a list of operational exceptions filtered by type, status, severity, or source.
+      operationId: listExceptionLog
+      security: *id001
+      parameters:
+      - name: type
+        in: query
+        required: false
+        description: Filter by exception type
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by status
+        schema:
+          type: string
+      - name: severity
+        in: query
+        required: false
+        description: Filter by severity
+        schema:
+          type: string
+      - name: source
+        in: query
+        required: false
+        description: Filter by source
+        schema:
+          type: string
+      - name: search
+        in: query
+        required: false
+        description: Search by message content
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of results to return
+        schema:
+          type: integer
+          default: 50
+      - name: offset
+        in: query
+        required: false
+        description: Number of results to skip
+        schema:
+          type: integer
+          default: 0
+      responses:
+        '200':
+          description: List of operational exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OperationalException'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /exception-log/{id}:
+    get:
+      tags:
+      - Exception Log
+      summary: Get an operational exception
+      description: Retrieves detailed information about a single operational exception by its ID.
+      operationId: getExceptionLogEntry
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Exception ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Operational exception details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationalException'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /exception-log/{id}/resolve:
+    post:
+      tags:
+      - Exception Log
+      summary: Resolve an operational exception
+      description: Resolves an operational exception by updating its status and recording the resolution.
+      operationId: resolveExceptionLogEntry
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Exception ID
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                resolvedBy:
+                  type: string
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Exception resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationalException'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Bad request
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /dashboard/executive-summary:
+    get:
+      tags:
+      - Executive Dashboard
+      summary: Get executive summary
+      description: Retrieves executive-level summary and KPIs for a program and period.
+      operationId: getExecutiveSummary
+      security: *id001
+      parameters:
+      - name: programId
+        in: query
+        required: false
+        description: Filter by program ID
+        schema:
+          type: integer
+      - name: period
+        in: query
+        required: false
+        description: Filter by period
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Executive summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutiveSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /system-status/summary:
+    get:
+      tags:
+      - System Status
+      summary: Get system health summary
+      description: Retrieves the overall system health status including services and integrations.
+      operationId: getSystemStatusSummary
+      security: *id001
+      responses:
+        '200':
+          description: System health summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /notifications:
+    get:
+      tags:
+      - Notifications
+      summary: List notifications
+      description: Retrieves a list of notification events.
+      operationId: listNotifications
+      security: *id001
+      parameters:
+      - name: unreadOnly
+        in: query
+        required: false
+        description: Filter to unread notifications only
+        schema:
+          type: boolean
+      - name: type
+        in: query
+        required: false
+        description: Filter by notification type
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of results to return
+        schema:
+          type: integer
+          default: 50
+      - name: offset
+        in: query
+        required: false
+        description: Number of results to skip
+        schema:
+          type: integer
+          default: 0
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationEvent'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /notifications/{id}/read:
+    post:
+      tags:
+      - Notifications
+      summary: Mark notification as read
+      description: Marks a single notification as read.
+      operationId: markNotificationRead
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Notification ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationEvent'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /notifications/mark-all-read:
+    post:
+      tags:
+      - Notifications
+      summary: Mark all notifications as read
+      description: Marks all notifications as read for the current user.
+      operationId: markAllNotificationsRead
+      security: *id001
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /org-domain-mapping:
+    get:
+      tags:
+      - Org & Domain Mapping
+      summary: Get organizational domain mapping
+      description: Retrieves the organizational hierarchy mapping.
+      operationId: getOrgDomainMapping
+      security: *id001
+      parameters:
+      - name: view
+        in: query
+        required: false
+        description: View type
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Organizational domain mapping
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrgDomainMapping'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpi-config/registry:
+    get:
+      tags:
+      - KPI Config
+      summary: Get KPI registry
+      description: Retrieves the list of all available KPI definitions.
+      operationId: getKpiRegistry
+      security: *id001
+      responses:
+        '200':
+          description: KPI registry entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KPIRegistryEntry'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpi-config/{id}/validate:
+    post:
+      tags:
+      - KPI Config
+      summary: Validate KPI configuration
+      description: Validates a KPI configuration and returns any errors or warnings.
+      operationId: validateKpiConfig
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: KPI configuration ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KPIValidation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /kpi-config/{id}/summary:
+    get:
+      tags:
+      - KPI Config
+      summary: Get KPI configuration summary
+      description: Retrieves a summary of a specific KPI configuration.
+      operationId: getKpiConfigSummary
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: KPI configuration ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: KPI configuration summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KPIRegistryEntry'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+  /programs/{id}/preview:
+    get:
+      tags:
+      - Programs
+      summary: Preview a program
+      description: Retrieves a preview of a program including KPI count, payout rules, and estimated payout.
+      operationId: previewProgram
+      security: *id001
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Program ID
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Program preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramPreview'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Resource not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
 components:
   securitySchemes:
     BearerAuth:
@@ -5849,3 +6905,319 @@ components:
             destination:
               type: string
               example: Oracle Financials
+    ReviewAdjustmentSummary:
+      type: object
+      properties:
+        totalRows:
+          type: integer
+          example: 128
+        pendingCount:
+          type: integer
+          example: 45
+        adjustedCount:
+          type: integer
+          example: 60
+        heldCount:
+          type: integer
+          example: 23
+    ReviewAdjustmentRow:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        agentCode:
+          type: string
+          example: AGT-001
+        agentName:
+          type: string
+          example: John Doe
+        programId:
+          type: integer
+          example: 10
+        period:
+          type: string
+          format: date
+          example: '2025-04-01'
+        channel:
+          type: string
+          example: Agency
+        originalAmount:
+          type: number
+          example: 15000.00
+        adjustedAmount:
+          type: number
+          example: 16500.00
+        status:
+          type: string
+          enum: [PENDING, ADJUSTED, HELD, APPROVED, RELEASED]
+          example: PENDING
+        lastAction:
+          type: string
+          example: Adjusted by manager
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-04-10T14:30:00Z'
+    IncentiveAdjustment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        reviewRowId:
+          type: integer
+          example: 42
+        previousAmount:
+          type: number
+          example: 15000.00
+        newAmount:
+          type: number
+          example: 16500.00
+        reason:
+          type: string
+          example: Manual correction
+        notes:
+          type: string
+          example: Approved by regional manager
+        adjustedBy:
+          type: string
+          example: admin@example.com
+        adjustedAt:
+          type: string
+          format: date-time
+          example: '2025-04-10T14:30:00Z'
+    ReviewAction:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        reviewRowId:
+          type: integer
+          example: 42
+        action:
+          type: string
+          enum: [ADJUST, HOLD, RELEASE, APPROVE]
+          example: ADJUST
+        performedBy:
+          type: string
+          example: admin@example.com
+        note:
+          type: string
+          example: Corrected calculation error
+        timestamp:
+          type: string
+          format: date-time
+          example: '2025-04-10T14:30:00Z'
+    OperationalException:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          example: DATA_MISMATCH
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          example: HIGH
+        source:
+          type: string
+          example: LifeAsia Inbound
+        message:
+          type: string
+          example: Policy count mismatch in batch 2025-04-01
+        status:
+          type: string
+          enum: [OPEN, RESOLVED, IGNORED]
+          example: OPEN
+        resolvedBy:
+          type: string
+          example: ops@example.com
+        resolvedAt:
+          type: string
+          format: date-time
+          example: '2025-04-10T16:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-04-10T08:00:00Z'
+    ExecutiveSummary:
+      type: object
+      properties:
+        programId:
+          type: integer
+          example: 10
+        period:
+          type: string
+          example: '2025-04'
+        totalAgents:
+          type: integer
+          example: 350
+        totalPayout:
+          type: number
+          example: 2500000.00
+        avgPayout:
+          type: number
+          example: 7142.86
+        topChannel:
+          type: string
+          example: Agency
+        approvalRate:
+          type: number
+          example: 92.5
+        pendingApprovals:
+          type: integer
+          example: 28
+        exceptionCount:
+          type: integer
+          example: 5
+    SystemStatus:
+      type: object
+      properties:
+        overall:
+          type: string
+          enum: [HEALTHY, DEGRADED, DOWN]
+          example: HEALTHY
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: Calculation Engine
+              status:
+                type: string
+                enum: [UP, DOWN, DEGRADED]
+                example: UP
+              lastCheck:
+                type: string
+                format: date-time
+                example: '2025-04-10T12:00:00Z'
+        integrations:
+          type: object
+          properties:
+            lifeAsia:
+              type: string
+              example: HEALTHY
+            penta:
+              type: string
+              example: HEALTHY
+            outbound:
+              type: string
+              example: HEALTHY
+    NotificationEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          example: APPROVAL_REQUIRED
+        title:
+          type: string
+          example: New payout batch pending approval
+        message:
+          type: string
+          example: 45 incentive records require your approval for April 2025
+        read:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-04-10T09:00:00Z'
+    OrgDomainMapping:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        orgUnit:
+          type: string
+          example: North Region
+        domain:
+          type: string
+          example: Agency
+        parentOrgUnit:
+          type: string
+          example: National
+        level:
+          type: integer
+          example: 2
+        agentCount:
+          type: integer
+          example: 85
+    KPIRegistryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        code:
+          type: string
+          example: NEW_BUSINESS_PREMIUM
+        name:
+          type: string
+          example: New Business Premium
+        category:
+          type: string
+          example: Production
+        dataType:
+          type: string
+          enum: [NUMERIC, PERCENTAGE, CURRENCY, COUNT]
+          example: CURRENCY
+        description:
+          type: string
+          example: Total new business premium collected in period
+    KPIValidation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        valid:
+          type: boolean
+          example: true
+        errors:
+          type: array
+          items:
+            type: string
+          example: []
+        warnings:
+          type: array
+          items:
+            type: string
+          example:
+          - Threshold gap detected between slab 2 and slab 3
+    ProgramPreview:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        name:
+          type: string
+          example: FY2025 Agency Channel Incentive
+        status:
+          type: string
+          example: ACTIVE
+        kpiCount:
+          type: integer
+          example: 5
+        payoutRuleCount:
+          type: integer
+          example: 3
+        eligibleAgents:
+          type: integer
+          example: 350
+        estimatedPayout:
+          type: number
+          example: 2500000.00
+        period:
+          type: string
+          example: '2025-04-01 to 2026-03-31'

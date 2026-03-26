@@ -11,7 +11,7 @@
 1. Open **Postman** (desktop or web).
 2. Click **Import** → **Upload Files**.
 3. Select `docs/api/IncentiveSystem.postman_collection.json`.
-4. The collection "**Insurance Incentive Management System**" appears in your sidebar with 11 folders.
+4. The collection "**Insurance Incentive Management System**" appears in your sidebar with 18 folders.
 
 ### 2. Check Collection Variables
 
@@ -64,6 +64,13 @@ All subsequent requests will use these tokens automatically.
 | 09 | Integration Inbound | 4 | System | Penta policy push + heartbeat |
 | 10 | Integration Outbound | 3 | User | SAP FICO / Oracle AP exports |
 | 11 | Integration Monitoring | 7 | User | Status, logs, manual triggers |
+| 12 | Review Adjustments | 7 | User | Review, adjust, hold, release, batch-approve, audit |
+| 13 | Exception Log | 3 | User | List, view, resolve exceptions |
+| 14 | Executive Summary | 1 | User | Executive dashboard data |
+| 15 | System Status | 1 | User | System health check |
+| 16 | Notifications | 3 | User | List, read, mark-all-read |
+| 17 | Org & Domain Mapping | 1 | User | Org hierarchy by dimension |
+| 18 | KPI Config Helpers | 3 | User | Registry, validate, summary |
 
 ---
 
@@ -143,6 +150,26 @@ data dependencies are satisfied:
   ├── Get Integration Status
   ├── Get Audit Log
   └── Trigger Reprocess
+```
+
+### Phase 8: Review & Monitoring
+```
+12 - Review Adjustments
+  ├── Review calculation results
+  ├── Apply adjustments
+  ├── Hold/Release
+  └── Batch approve
+
+13 - Exception Log
+  ├── Check exception log
+  └── Resolve exceptions
+
+14–18 - Supporting Modules
+  ├── View executive summary
+  ├── System status
+  ├── Notifications
+  ├── Browse org/domain mapping
+  └── KPI config helpers
 ```
 
 ---
@@ -242,7 +269,7 @@ if (json.token) {
 3. Click **Run Insurance Incentive Management System**.
 4. View results in the **Runner** tab.
 
-> **Note:** Run folders in sequence (01 → 11) for best results.
+> **Note:** Run folders in sequence (01 → 18) for best results.
 > Upload endpoints require actual CSV files, so skip folder 05 in automated runs
 > unless you've configured file paths.
 

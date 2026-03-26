@@ -2183,6 +2183,1103 @@ No body required.
 
 ---
 
+## REVIEW ADJUSTMENTS
+
+### GET `/api/review-adjustments`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+List incentive results with adjustments for review. Supports filtering and pagination. Reads from existing `ins_incentive_results` with additive joins to `incentive_adjustments`. Does not modify base calculation data.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|---|---|---|---|---|---|
+| `programId` | query | integer | | Filter by program | `12` |
+| `periodStart` | query | string | | Filter by period start | `2026-01-01` |
+| `channel` | query | integer | | Filter by channel ID | `3` |
+| `status` | query | string | | Filter by status (DRAFT, APPROVED, INITIATED, PAID, HOLD) | `APPROVED` |
+| `search` | query | string | | Search agent code or name | `AGT-001` |
+| `limit` | query | integer | | Results per page (default: 50) | `50` |
+| `offset` | query | integer | | Pagination offset (default: 0) | `0` |
+
+#### Response (200)
+```json
+{
+  "summary": {
+    "total_calculated": 127550,
+    "total_held": 0,
+    "total_adjustments": 5000,
+    "net_payout": 132550,
+    "total_count": 20
+  },
+  "rows": [
+    {
+      "id": 1,
+      "agent_code": "AGT-JR-001",
+      "program_id": 1,
+      "period_start": "2025-07-01",
+      "period_end": "2025-09-30",
+      "calculated": 8500,
+      "net_self_incentive": 8500,
+      "total_override": 0,
+      "status": "DRAFT",
+      "persistency_gate_passed": true,
+      "agent_name": "John Reyes",
+      "channel_name": "Direct Sales",
+      "region_name": "NCR",
+      "program_name": "Q3 2025 Sales Incentive",
+      "adjustment": 0,
+      "hold_count": 0,
+      "total_payout": 8500
+    }
+  ],
+  "pagination": { "limit": 50, "offset": 0, "total": 20 }
+}
+```
+
+#### Notes
+- HOLD status is virtual — derived from unapplied hold adjustments in `incentive_adjustments`
+- Reads existing `ins_incentive_results`; adjustments are from additive table only
+- Does not impact base calculation math
+
+---
+
+### GET `/api/review-adjustments/{id}`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+Get a single incentive result detail including all adjustments and audit trail.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Incentive result ID |
+
+#### Response (200)
+```json
+{
+  "id": 1,
+  "agent_code": "AGT-JR-001",
+  "program_id": 1,
+  "period_start": "2025-07-01",
+  "period_end": "2025-09-30",
+  "total_incentive": 8500,
+  "net_self_incentive": 8500,
+  "total_override": 0,
+  "status": "DRAFT",
+  "persistency_gate_passed": true,
+  "agent_name": "John Reyes",
+  "branch_code": "BR-NCR-001",
+  "hierarchy_level": "Agent",
+  "channel_name": "Direct Sales",
+  "region_name": "NCR",
+  "program_name": "Q3 2025 Sales Incentive",
+  "nb_achievement_pct": 120.5,
+  "nb_total_premium": 250000,
+  "persistency_13m": 88.5,
+  "nb_policy_count": 12,
+  "nb_target_premium": 200000,
+  "adjustments": [
+    {
+      "id": 1,
+      "result_id": 1,
+      "adjustment_amount": 5000,
+      "adjustment_type": "MANUAL",
+      "reason": "Manager bonus",
+      "created_by": "admin",
+      "notes": "Approved by regional head",
+      "created_at": "2025-10-01T10:00:00Z"
+    }
+  ],
+  "auditTrail": [
+    {
+      "id": 1,
+      "result_id": 1,
+      "action": "ADJUST",
+      "actor": "admin",
+      "details": { "amount": 5000, "reason": "Manager bonus" },
+      "created_at": "2025-10-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### Response (404)
+```json
+{
+  "success": false,
+  "error": "Referenced record not found",
+  "code": "VAL_006"
+}
+```
+
+#### Notes
+- Joins `ins_incentive_results`, `ins_agents`, `channels`, `ins_regions`, `incentive_programs`, `ins_agent_kpi_summary`
+- Adjustments from additive `incentive_adjustments` table
+- Audit trail from additive `incentive_review_actions` table
+
+---
+
+### POST `/api/review-adjustments/{id}/adjust`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+Apply a manual adjustment (additive only) to an incentive result. Writes to the additive `incentive_adjustments` table. Does not modify `ins_incentive_results`.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Incentive result ID |
+| `amount` | body | number | ✅ | Adjustment amount (positive or negative) |
+| `reason` | body | string | | Reason for adjustment |
+| `notes` | body | string | | Additional notes |
+| `adjustedBy` | body | string | | User performing the adjustment |
+
+```json
+{
+  "amount": 5000,
+  "reason": "Manager performance bonus",
+  "notes": "Approved by regional head",
+  "adjustedBy": "admin"
+}
+```
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "adjustment": {
+    "id": 1,
+    "result_id": 1,
+    "adjustment_amount": 5000,
+    "adjustment_type": "MANUAL",
+    "reason": "Manager performance bonus",
+    "created_by": "admin",
+    "notes": "Approved by regional head",
+    "created_at": "2025-10-01T10:00:00Z"
+  }
+}
+```
+
+#### Response (400)
+```json
+{
+  "success": false,
+  "error": "Required field missing",
+  "code": "VAL_001",
+  "details": "amount is required"
+}
+```
+
+#### Response (422)
+```json
+{
+  "success": false,
+  "error": "Cannot modify APPROVED/PAID result",
+  "code": "BUS_003"
+}
+```
+
+#### Notes
+- Inserts into `incentive_adjustments` with type `MANUAL`
+- Also inserts audit record into `incentive_review_actions`
+- Cannot adjust results in PAID status
+- Does not change base calculation result in `ins_incentive_results`
+
+---
+
+### POST `/api/review-adjustments/{id}/hold`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+Place an incentive result on hold. Creates an additive HOLD record in `incentive_adjustments`. Does not change the result status in `ins_incentive_results`.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Incentive result ID |
+| `reason` | body | string | | Reason for hold |
+| `heldBy` | body | string | | User placing the hold |
+
+```json
+{
+  "reason": "Pending compliance review",
+  "heldBy": "compliance.officer"
+}
+```
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "held": true
+}
+```
+
+#### Response (404)
+```json
+{
+  "success": false,
+  "error": "Referenced record not found",
+  "code": "VAL_006"
+}
+```
+
+#### Notes
+- Inserts into `incentive_adjustments` with type `HOLD`
+- Also inserts audit record into `incentive_review_actions`
+- Hold is additive — the base result status in `ins_incentive_results` is NOT changed
+- Held results are skipped during batch-approve
+
+---
+
+### POST `/api/review-adjustments/{id}/release`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+Release a held incentive result. Creates an additive RELEASE record in `incentive_adjustments`.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Incentive result ID |
+| `releasedBy` | body | string | | User releasing the hold |
+
+```json
+{
+  "releasedBy": "compliance.officer"
+}
+```
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "released": true
+}
+```
+
+#### Notes
+- Inserts into `incentive_adjustments` with type `RELEASE`
+- Also inserts audit record into `incentive_review_actions`
+- Release is additive — does not modify base result
+
+---
+
+### POST `/api/review-adjustments/batch-approve`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+Batch approve multiple incentive results. Skips held results and those that failed the persistency gate. Updates `ins_incentive_results.status` to APPROVED and writes an additive audit trail.
+
+#### Request
+| Field | In | Type | Required | Description |
+|---|---|---|---|---|
+| `ids` | body | integer[] | ✅ | Array of result IDs to approve |
+| `approvedBy` | body | string | | User performing the approval |
+
+```json
+{
+  "ids": [1, 2, 3, 4, 5],
+  "approvedBy": "finance.head"
+}
+```
+
+#### Response (200)
+```json
+{
+  "approved": 3,
+  "skipped_held": 1,
+  "skipped_gate_failed": 1
+}
+```
+
+#### Response (400)
+```json
+{
+  "success": false,
+  "error": "Required field missing",
+  "code": "VAL_001",
+  "details": "ids must be a non-empty array"
+}
+```
+
+#### Notes
+- Uses existing approval logic (same as existing bulk-approve)
+- Skips results that have unapplied holds
+- Skips results where `persistency_gate_passed = false`
+- Creates `BATCH_APPROVE` audit record in `incentive_review_actions` for each approved result
+- Does not bypass any calculation or persistency gate logic
+
+---
+
+### GET `/api/review-adjustments/{id}/audit`
+**Tag:** Review Adjustments  
+**Auth:** Required (User)
+
+Get full audit trail (review actions and adjustments) for a specific incentive result.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Incentive result ID |
+
+#### Response (200)
+```json
+{
+  "actions": [
+    {
+      "id": 1,
+      "result_id": 1,
+      "action": "ADJUST",
+      "actor": "admin",
+      "details": { "amount": 5000, "reason": "Manager bonus" },
+      "created_at": "2025-10-01T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "result_id": 1,
+      "action": "BATCH_APPROVE",
+      "actor": "finance.head",
+      "details": {},
+      "created_at": "2025-10-02T08:00:00Z"
+    }
+  ],
+  "adjustments": [
+    {
+      "id": 1,
+      "result_id": 1,
+      "adjustment_amount": 5000,
+      "adjustment_type": "MANUAL",
+      "reason": "Manager bonus",
+      "created_by": "admin",
+      "notes": "Approved by regional head",
+      "created_at": "2025-10-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### Notes
+- Reads from additive tables `incentive_review_actions` and `incentive_adjustments`
+- Both tables are ordered by `created_at DESC`
+
+---
+
+## EXCEPTION LOG
+
+### GET `/api/exception-log`
+**Tag:** Exception Log  
+**Auth:** Required (User)
+
+List operational exceptions with filtering, search, and pagination. Reads from additive `operational_exceptions` table. Does not impact base calculation tables.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|---|---|---|---|---|---|
+| `type` | query | string | | Filter by exception type | `DATA_QUALITY` |
+| `status` | query | string | | Filter by status (OPEN, INVESTIGATING, RESOLVED, DISMISSED) | `OPEN` |
+| `severity` | query | string | | Filter by severity (LOW, MEDIUM, HIGH, CRITICAL) | `HIGH` |
+| `source` | query | string | | Filter by source system | `LifeAsia` |
+| `search` | query | string | | Search entity_id, description, or exception_type | `AGT-001` |
+| `limit` | query | integer | | Results per page (default: 25) | `25` |
+| `offset` | query | integer | | Pagination offset (default: 0) | `0` |
+
+#### Response (200)
+```json
+{
+  "summary": {
+    "open_count": 5,
+    "resolved_today": 2,
+    "critical_count": 1,
+    "sources_affected": 3,
+    "total_count": 15
+  },
+  "rows": [
+    {
+      "id": 1,
+      "exception_type": "DATA_QUALITY",
+      "status": "OPEN",
+      "severity": "HIGH",
+      "source_system": "LifeAsia",
+      "entity_id": "AGT-001",
+      "description": "Agent missing branch code",
+      "resolution_note": null,
+      "resolved_by": null,
+      "resolved_at": null,
+      "created_at": "2025-10-01T08:00:00Z"
+    }
+  ],
+  "pagination": { "limit": 25, "offset": 0, "total": 15 }
+}
+```
+
+#### Notes
+- Summary is computed from aggregate queries on `operational_exceptions`
+- Reads only from additive table; no impact on calculation tables
+- `resolved_today` counts exceptions resolved since midnight UTC
+
+---
+
+### GET `/api/exception-log/{id}`
+**Tag:** Exception Log  
+**Auth:** Required (User)
+
+Get a single exception detail by ID.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Exception ID |
+
+#### Response (200)
+```json
+{
+  "id": 1,
+  "exception_type": "DATA_QUALITY",
+  "status": "OPEN",
+  "severity": "HIGH",
+  "source_system": "LifeAsia",
+  "entity_id": "AGT-001",
+  "description": "Agent missing branch code",
+  "before_value": null,
+  "after_value": null,
+  "reason_code": null,
+  "resolution_note": null,
+  "resolved_by": null,
+  "resolved_at": null,
+  "created_at": "2025-10-01T08:00:00Z"
+}
+```
+
+#### Response (404)
+```json
+{
+  "success": false,
+  "error": "Referenced record not found",
+  "code": "VAL_006"
+}
+```
+
+---
+
+### POST `/api/exception-log/{id}/resolve`
+**Tag:** Exception Log  
+**Auth:** Required (User)
+
+Resolve or dismiss an operational exception. Updates the additive `operational_exceptions` table only. Does not change incentive result status unless explicitly coded elsewhere.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Exception ID |
+| `status` | body | string | | Resolution status: RESOLVED or DISMISSED (default: RESOLVED) |
+| `resolvedBy` | body | string | | User resolving the exception |
+| `note` | body | string | | Resolution note |
+
+```json
+{
+  "status": "RESOLVED",
+  "resolvedBy": "ops.manager",
+  "note": "Agent branch code corrected in master data"
+}
+```
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "exception": {
+    "id": 1,
+    "exception_type": "DATA_QUALITY",
+    "status": "RESOLVED",
+    "severity": "HIGH",
+    "source_system": "LifeAsia",
+    "entity_id": "AGT-001",
+    "description": "Agent missing branch code",
+    "resolution_note": "Agent branch code corrected in master data",
+    "resolved_by": "ops.manager",
+    "resolved_at": "2025-10-01T14:00:00Z",
+    "created_at": "2025-10-01T08:00:00Z"
+  }
+}
+```
+
+#### Response (400)
+```json
+{
+  "success": false,
+  "error": "Invalid enum value",
+  "code": "VAL_003",
+  "details": "status must be RESOLVED or DISMISSED"
+}
+```
+
+#### Response (404)
+```json
+{ "error": "Exception not found or already resolved" }
+```
+
+#### Notes
+- Only updates additive `operational_exceptions` table
+- Does not change incentive result status
+- Already-resolved exceptions cannot be resolved again
+
+---
+
+## EXECUTIVE DASHBOARD
+
+### GET `/api/dashboard/executive-summary`
+**Tag:** Executive Dashboard  
+**Auth:** Required (User)
+
+Executive-level summary with KPI cards, alert counts, pipeline status, channel performance, and recent activity. Designed for the executive dashboard UI.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|---|---|---|---|---|---|
+| `programId` | query | integer | | Filter by program | `1` |
+| `period` | query | string | | Filter by period (YYYY-MM-DD) | `2025-07-01` |
+
+#### Response (200)
+```json
+{
+  "kpiCards": {
+    "activeSchemes": 3,
+    "processingPayouts": 5,
+    "pendingApprovals": 12,
+    "netPayout": 127550,
+    "totalRecords": 20
+  },
+  "alerts": {
+    "openExceptions": 5,
+    "unreadNotifications": 8
+  },
+  "pipeline": {
+    "DRAFT": { "count": 12, "total": 85000 },
+    "APPROVED": { "count": 5, "total": 35000 },
+    "INITIATED": { "count": 2, "total": 5000 },
+    "PAID": { "count": 1, "total": 2550 }
+  },
+  "channelPerformance": [
+    {
+      "channel": "Direct Sales",
+      "self_incentive": 95000,
+      "override_incentive": 12000,
+      "total_incentive": 107000,
+      "agent_count": 12
+    }
+  ],
+  "recentActivity": [
+    {
+      "type": "calculation",
+      "message": "Calculation completed for Q3 program",
+      "time": "Oct 1, 2025 10:00 AM",
+      "icon": "📊"
+    }
+  ],
+  "lastSync": "2025-10-01T10:30:00.000Z"
+}
+```
+
+#### Notes
+- Aggregates data from `incentive_programs`, `ins_incentive_results`, `ins_agents`, `channels`
+- Alert counts read from additive tables `operational_exceptions` and `notification_events` (wrapped in try-catch)
+- Pipeline mirrors the existing stage-summary endpoint data
+- **Auth observation:** Route uses `userAuth` middleware; no additional role-based restriction currently applied
+
+---
+
+## SYSTEM STATUS
+
+### GET `/api/system-status/summary`
+**Tag:** System Status  
+**Auth:** Required (User)
+
+System health overview including database connectivity, sync timestamps, integration counts, and file processing status.
+
+#### Request
+No parameters.
+
+#### Response (200)
+```json
+{
+  "database": { "status": "CONNECTED" },
+  "syncStatus": {
+    "HIERARCHY_LAST_SYNC": { "value": "2025-10-01T08:00:00Z", "updatedAt": "2025-10-01T08:00:00Z" },
+    "LIFEASIA_LAST_FILE": { "value": "policy_202510.csv", "updatedAt": "2025-10-01T06:00:00Z" },
+    "PENTA_LAST_SYNC": { "value": "2025-10-01T09:00:00Z", "updatedAt": "2025-10-01T09:00:00Z" }
+  },
+  "integrationCounts": {
+    "LifeAsia": { "SUCCESS": 42, "FAILURE": 1 },
+    "Penta": { "SUCCESS": 38, "FAILURE": 0 }
+  },
+  "fileProcessing": {
+    "COMPLETED": 12,
+    "PENDING": 2,
+    "ERROR": 0
+  },
+  "serverTime": "2025-10-01T10:30:00.000Z"
+}
+```
+
+#### Response (500)
+```json
+{
+  "database": { "status": "ERROR" },
+  "serverTime": "2025-10-01T10:30:00.000Z"
+}
+```
+
+#### Notes
+- Each subsection is wrapped in try-catch; partial results returned if a subsystem is unavailable
+- Reads from `system_config`, `integration_audit_log`, `file_processing_log`
+- Does not read from or affect calculation tables
+
+---
+
+## NOTIFICATIONS
+
+### GET `/api/notifications`
+**Tag:** Notifications  
+**Auth:** Required (User)
+
+List notification events with optional filtering by read status and type. Reads from additive `notification_events` table.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|---|---|---|---|---|---|
+| `unreadOnly` | query | string | | Filter to unread only (`"true"`) | `true` |
+| `type` | query | string | | Filter by event type | `CALCULATION_COMPLETE` |
+| `limit` | query | integer | | Results per page (default: 20) | `20` |
+| `offset` | query | integer | | Pagination offset (default: 0) | `0` |
+
+#### Response (200)
+```json
+{
+  "rows": [
+    {
+      "id": 1,
+      "event_type": "CALCULATION_COMPLETE",
+      "message": "Q3 calculation completed for 20 agents",
+      "is_read": false,
+      "created_at": "2025-10-01T10:00:00Z"
+    }
+  ],
+  "total": 15,
+  "unread": 8
+}
+```
+
+#### Notes
+- Event types: CALCULATION_COMPLETE, APPROVAL_REQUIRED, EXCEPTION_RAISED, PAYOUT_INITIATED, INTEGRATION_ERROR, SCHEME_PUBLISHED
+- Reads only from additive `notification_events` table
+
+---
+
+### POST `/api/notifications/{id}/read`
+**Tag:** Notifications  
+**Auth:** Required (User)
+
+Mark a single notification as read.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Notification ID |
+
+No request body.
+
+#### Response (200)
+```json
+{ "success": true }
+```
+
+#### Notes
+- Updates `is_read = true` in `notification_events`
+- Additive table only; no impact on calculation data
+
+---
+
+### POST `/api/notifications/mark-all-read`
+**Tag:** Notifications  
+**Auth:** Required (User)
+
+Mark all unread notifications as read.
+
+#### Request
+No parameters or body.
+
+#### Response (200)
+```json
+{
+  "success": true,
+  "updated": 8
+}
+```
+
+#### Notes
+- Bulk updates `notification_events` where `is_read = false`
+
+---
+
+## ORG & DOMAIN MAPPING
+
+### GET `/api/org-domain-mapping`
+**Tag:** Org & Domain Mapping  
+**Auth:** Required (User)
+
+Hierarchical organizational mapping with summary metrics and grouped data. Supports four view dimensions. Reads from existing master tables only.
+
+#### Request
+| Parameter | In | Type | Required | Description | Example |
+|---|---|---|---|---|---|
+| `view` | query | string | | Grouping dimension: `region`, `channel`, `branch`, `designation` (default: `region`) | `channel` |
+
+#### Response (200) — view=region
+```json
+{
+  "summary": {
+    "total_agents": 50,
+    "active_agents": 45,
+    "regions": 5,
+    "channels": 3,
+    "branches": 12
+  },
+  "view": "region",
+  "groupedData": [
+    {
+      "id": 1,
+      "region_name": "NCR",
+      "region_code": "NCR",
+      "zone": "Luzon",
+      "agent_count": 15,
+      "active_count": 14,
+      "branch_count": 4
+    }
+  ],
+  "products": [
+    {
+      "product_category": "Life",
+      "count": 10,
+      "active_count": 8
+    }
+  ]
+}
+```
+
+#### Response (200) — view=channel
+```json
+{
+  "summary": { "total_agents": 50, "active_agents": 45, "regions": 5, "channels": 3, "branches": 12 },
+  "view": "channel",
+  "groupedData": [
+    {
+      "id": 1,
+      "name": "Direct Sales",
+      "code": "DS",
+      "agent_count": 20,
+      "active_count": 18,
+      "region_count": 3,
+      "branch_count": 6
+    }
+  ],
+  "products": [...]
+}
+```
+
+#### Response (200) — view=branch
+```json
+{
+  "summary": { "..." : "..." },
+  "view": "branch",
+  "groupedData": [
+    {
+      "branch_code": "BR-NCR-001",
+      "region_name": "NCR",
+      "channel_name": "Direct Sales",
+      "agent_count": 5,
+      "active_count": 4
+    }
+  ],
+  "products": [...]
+}
+```
+
+#### Response (200) — view=designation
+```json
+{
+  "summary": { "..." : "..." },
+  "view": "designation",
+  "groupedData": [
+    {
+      "hierarchy_level": "Agent",
+      "agent_count": 30,
+      "active_count": 28,
+      "channel_count": 3
+    }
+  ],
+  "products": [...]
+}
+```
+
+#### Notes
+- Reads from existing master tables: `ins_agents`, `ins_regions`, `channels`, `ins_products`
+- Does not read from or impact calculation or additive tables
+- Product summary is always included regardless of view dimension
+
+---
+
+## KPI CONFIG HELPERS
+
+### GET `/api/kpi-config/registry`
+**Tag:** KPI Config  
+**Auth:** Required (User)
+
+Full KPI registry with stats, all KPI definitions enriched with milestones and program info, and derived variables. Designed to power the KPI Config workspace UI.
+
+#### Request
+No parameters.
+
+#### Response (200)
+```json
+{
+  "stats": {
+    "totalKPIs": 8,
+    "activeKPIs": 6,
+    "programsLinked": 3,
+    "derivedVariables": 5
+  },
+  "kpis": [
+    {
+      "id": 1,
+      "kpi_name": "New Business Premium",
+      "program_id": 1,
+      "program_name": "Q3 2025 Sales Incentive",
+      "program_status": "ACTIVE",
+      "channel_name": "Direct Sales",
+      "sort_order": 1,
+      "milestones": [
+        {
+          "id": 1,
+          "kpi_id": 1,
+          "milestone_label": "Base",
+          "range_from": 0,
+          "range_to": 80,
+          "sort_order": 1,
+          "achievement_value": 50
+        }
+      ]
+    }
+  ],
+  "derivedVariables": [
+    {
+      "id": 1,
+      "var_name": "nb_premium_ratio",
+      "var_description": "NB premium as percentage of target",
+      "formula": "nb_total_premium / nb_target_premium * 100"
+    }
+  ]
+}
+```
+
+#### Notes
+- Joins `kpi_definitions`, `incentive_programs`, `channels`, `kpi_milestones`
+- Reads existing tables only; no additive table dependency
+- Milestones embedded as JSON array per KPI
+
+---
+
+### POST `/api/kpi-config/{id}/validate`
+**Tag:** KPI Config  
+**Auth:** Required (User)
+
+Validate a KPI configuration including checking for milestones and payout slab linkages.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | KPI definition ID |
+
+No request body.
+
+#### Response (200) — valid
+```json
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [],
+  "milestoneCount": 4,
+  "payoutSlabLinks": 2
+}
+```
+
+#### Response (200) — validation issues found
+```json
+{
+  "valid": false,
+  "errors": [
+    { "field": "milestones", "message": "No milestones defined for this KPI" }
+  ],
+  "warnings": [
+    { "field": "payout_slabs", "message": "No payout slabs linked to this KPI" }
+  ],
+  "milestoneCount": 0,
+  "payoutSlabLinks": 0
+}
+```
+
+#### Response (404)
+```json
+{ "error": "KPI definition not found" }
+```
+
+#### Notes
+- Validates against `kpi_definitions`, `incentive_programs`, `kpi_milestones`, `payout_slabs`
+- Read-only validation; does not modify any data
+- Returns structured errors and warnings for UI display
+
+---
+
+### GET `/api/kpi-config/{id}/summary`
+**Tag:** KPI Config  
+**Auth:** Required (User)
+
+Get comprehensive KPI summary including milestones, payout slabs, and qualifying rules.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | KPI definition ID |
+
+#### Response (200)
+```json
+{
+  "id": 1,
+  "kpi_name": "New Business Premium",
+  "program_id": 1,
+  "program_name": "Q3 2025 Sales Incentive",
+  "program_status": "ACTIVE",
+  "channel_name": "Direct Sales",
+  "sort_order": 1,
+  "milestones": [
+    {
+      "id": 1,
+      "kpi_id": 1,
+      "milestone_label": "Base",
+      "range_from": 0,
+      "range_to": 80,
+      "sort_order": 1
+    }
+  ],
+  "payoutSlabs": [
+    {
+      "id": 1,
+      "payout_rule_id": 1,
+      "kpi_id": 1,
+      "rule_name": "Standard Commission",
+      "sort_order": 1
+    }
+  ],
+  "qualifyingRules": [
+    {
+      "id": 1,
+      "payout_rule_id": 1,
+      "kpi_id": 1,
+      "rule_name": "Standard Commission"
+    }
+  ]
+}
+```
+
+#### Response (404)
+```json
+{ "error": "KPI definition not found" }
+```
+
+#### Notes
+- Joins `kpi_definitions`, `incentive_programs`, `channels`, `kpi_milestones`, `payout_slabs`, `payout_rules`, `payout_qualifying_rules`
+- Read-only endpoint for UI display
+
+---
+
+## PROGRAMS — PREVIEW
+
+### GET `/api/programs/{id}/preview`
+**Tag:** Programs  
+**Auth:** Required (User)
+
+Full program preview with associated KPIs (with milestones), payout rules (with slabs), qualifying rules, agent count, and result statistics. Designed to power the Scheme Management preview panel.
+
+#### Request
+| Parameter | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | path | integer | ✅ | Program ID |
+
+#### Response (200)
+```json
+{
+  "id": 1,
+  "name": "Q3 2025 Sales Incentive",
+  "description": "Quarterly incentive for direct sales agents",
+  "status": "ACTIVE",
+  "channel_id": 1,
+  "start_date": "2025-07-01",
+  "end_date": "2025-09-30",
+  "created_by": "admin",
+  "created_at": "2025-06-15T10:00:00Z",
+  "updated_at": "2025-06-20T14:00:00Z",
+  "channel": { "name": "Direct Sales", "code": "DS" },
+  "kpis": [
+    {
+      "id": 1,
+      "program_id": 1,
+      "kpi_name": "New Business Premium",
+      "sort_order": 1,
+      "milestones": [
+        { "id": 1, "kpi_id": 1, "milestone_label": "Base", "range_from": 0, "range_to": 80, "sort_order": 1 }
+      ]
+    }
+  ],
+  "payoutRules": [
+    {
+      "id": 1,
+      "program_id": 1,
+      "rule_name": "Standard Commission",
+      "slabs": [
+        { "id": 1, "payout_rule_id": 1, "kpi_id": 1, "sort_order": 1 }
+      ]
+    }
+  ],
+  "qualifyingRules": [
+    { "id": 1, "payout_rule_id": 1, "kpi_id": 1, "rule_name": "Standard Commission", "kpi_name": "New Business Premium" }
+  ],
+  "agentCount": 20,
+  "resultStats": {
+    "DRAFT": { "count": 12, "total": 85000 },
+    "APPROVED": { "count": 5, "total": 35000 },
+    "INITIATED": { "count": 2, "total": 5000 },
+    "PAID": { "count": 1, "total": 2550 }
+  }
+}
+```
+
+#### Response (404)
+```json
+{
+  "success": false,
+  "error": "Referenced record not found",
+  "code": "VAL_006"
+}
+```
+
+#### Notes
+- Composite endpoint joining `incentive_programs`, `channels`, `kpi_definitions`, `kpi_milestones`, `payout_rules`, `payout_slabs`, `payout_qualifying_rules`, `ins_agents`, `ins_incentive_results`
+- Read-only preview; no data modification
+- Uses existing tables only; not dependent on additive tables
+
+---
+
 ## Appendix
 
 ### Pipeline Status Flow

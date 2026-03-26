@@ -91,6 +91,24 @@ Every error response follows this shape:
 
 ---
 
+## Review & Adjustment Errors (ADJ_xxx)
+
+| Code | HTTP | Message | Trigger |
+|------|------|---------|---------|
+| `ADJ_001` | 400 | Adjustment amount is required | POST `/api/review-adjustments/:id/adjust` with missing `amount` |
+| `ADJ_002` | 404 | Incentive result not found | Any review-adjustment endpoint with invalid result ID |
+| `ADJ_003` | 422 | Cannot adjust result in PAID status | POST `/api/review-adjustments/:id/adjust` when result is PAID |
+| `ADJ_004` | 400 | IDs must be a non-empty array | POST `/api/review-adjustments/batch-approve` with empty `ids` |
+| `ADJ_005` | 404 | Exception not found or already resolved | POST `/api/exception-log/:id/resolve` with invalid or resolved ID |
+| `ADJ_006` | 400 | Invalid resolution status | POST `/api/exception-log/:id/resolve` with status not in RESOLVED/DISMISSED |
+
+> **Note:** Many of these map to existing VAL_xxx and BUS_xxx codes in practice. The review
+> adjustment routes reuse `VAL_001` (missing field), `VAL_003` (invalid enum), `VAL_006`
+> (record not found), and `BUS_003` (cannot modify PAID result). The ADJ_xxx codes are listed
+> here for documentation completeness of the additive module error surface.
+
+---
+
 ## Error Response Examples
 
 ### Single error
@@ -136,3 +154,7 @@ Every error response follows this shape:
 - [Inbound Penta API](./INBOUND_PENTA_API.md) — Penta integration details
 - [Outbound SAP FICO](./OUTBOUND_SAP_FICO.md) — SAP export format
 - [Outbound Oracle Financials](./OUTBOUND_ORACLE_FINANCIALS.md) — Oracle AP export format
+
+---
+
+> **Total error codes: 47** (AUTH: 7, VAL: 10, BUS: 10, INT: 9, CALC: 5, ADJ: 6)
