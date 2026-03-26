@@ -870,3 +870,440 @@ Add to `.vscode/settings.json`:
 | UNNEST | PostgreSQL function for typed array bulk insert |
 | UPSERT | `INSERT` with `ON CONFLICT DO UPDATE` pattern |
 | Webhook | Real-time HTTP push from Penta on policy events |
+
+---
+
+## Section 11 — Enterprise Module Overview
+
+The application includes the following enterprise modules, each mapping to a frontend page and backend API group:
+
+| Module | Frontend Route | Backend API Group | Purpose |
+|--------|---------------|-------------------|---------|
+| Dashboard | `/dashboard` | `/api/dashboard/summary` | Operational dashboard with KPI totals, channel breakdown, pipeline status |
+| KPI Config Workspace | `/kpi-config` | `/api/kpi-config/*` | KPI registry, validation, and summary views |
+| Scheme Management | `/scheme-management` | `/api/programs/*` | Program lifecycle (create, configure, preview, activate) |
+| Review & Adjustments | `/review-adjustments` | `/api/review-adjustments/*` | Post-calculation review, manual adjustments, hold/release, batch approval |
+| Exception Log | `/exception-log` | `/api/exception-log/*` | Operational exception monitoring, resolution, and dismissal |
+| Org & Domain Mapping | `/org-domain-mapping` | `/api/org-domain-mapping` | Agent hierarchy views by region, channel, branch, designation |
+| System Status | `/system-status` | `/api/system-status/summary` | Database, integration, and file processing health |
+| Notifications | `/notifications` | `/api/notifications/*` | Event notifications with read/unread tracking |
+| Payout Disbursement | `/payouts` | `/api/payouts/*`, `/api/incentive-results/*` | Payout rule management and disbursement workflow |
+| Integration Monitor | `/integration` | `/api/integration/*` | Inbound/outbound integration status and file processing |
+| Settings | `/settings` | — | Application settings and preferences |
+
+### 11.1 Navigation / Screen Map
+
+The sidebar navigation is organized into these groups:
+
+**OVERVIEW**
+- Dashboard → `/dashboard`
+
+**CONFIGURATION**
+- KPI Config → `/kpi-config`
+- Scheme Management → `/scheme-management`
+- Org & Domain Mapping → `/org-domain-mapping`
+
+**OPERATIONS**
+- Review & Adjustments → `/review-adjustments`
+- Exception Log → `/exception-log`
+
+**PAYOUTS**
+- Payout Disbursement → `/payouts`
+
+**MONITORING**
+- Integration Monitor → `/integration`
+- System Status → `/system-status`
+- Notifications → `/notifications`
+
+**ADMIN**
+- Settings → `/settings`
+
+**Legacy Routes (backward-compatible):**
+- `/admin/plans` → AdminPlanListing
+- `/plans/create` → CreatePlan
+- `/data/upload` → UploadCenter
+- `/data/variables` → DerivedVariables
+- `/incentive/breakdown` → IncentiveBreakdown
+- `/incentive/leaderboard` → Leaderboard
+- `/payout/disbursement` → PayoutDisbursement
+- `/team/performance` → TeamPerformance
+- `/integration/dashboard` → IntegrationMonitor
+
+Root `/` redirects to `/dashboard`.
+
+---
+
+## Section 12 — Extended Process Flow
+
+The original 22-step process flow (Section 3) covers program setup through payout. The following additional flows extend the process after calculation:
+
+### 12.1 Review & Adjustment Flow (after calculation)
+
+```
+Calculation Complete
+  │
+  ├─→ Results appear in Review & Adjustments page
+  │     │
+  │     ├─→ Operations reviews individual results
+  │     │     ├─→ Apply manual adjustment (additive, writes to incentive_adjustments)
+  │     │     ├─→ Place on hold (additive HOLD record)
+  │     │     └─→ Release hold (additive RELEASE record)
+  │     │
+  │     └─→ Finance performs batch approval
+  │           ├─→ Held results are SKIPPED
+  │           ├─→ Gate-failed results are SKIPPED
+  │           └─→ Approved results: status changes to APPROVED in ins_incentive_results
+  │
+  └─→ Approved results flow to payout (existing Steps 18–22)
+```
+
+### 12.2 Exception Monitoring Flow
+
+```
+Integration/Calculation/Upload
+  │
+  ├─→ Exceptions logged to operational_exceptions table
+  │     (via application code during data processing)
+  │
+  ├─→ Exception Log page shows all open exceptions
+  │     ├─→ Filter by type, severity, source, status
+  │     └─→ Search by entity or description
+  │
+  └─→ Operations resolves or dismisses exception
+        ├─→ RESOLVED: issue corrected, note added
+        └─→ DISMISSED: false alarm or not actionable
+```
+
+### 12.3 Executive Dashboard Monitoring
+
+```
+Executive opens Dashboard
+  │
+  ├─→ KPI cards: active schemes, pending approvals, processing payouts, net payout
+  ├─→ Alerts: open exceptions count, unread notifications count
+  ├─→ Pipeline: DRAFT → APPROVED → INITIATED → PAID with counts and totals
+  ├─→ Channel performance: incentive breakdown by channel
+  └─→ Recent activity: latest calculations and approvals
+```
+
+### 12.4 Notification Flow
+
+```
+System Event Occurs
+  │
+  ├─→ CALCULATION_COMPLETE → notification_events
+  ├─→ APPROVAL_REQUIRED → notification_events
+  ├─→ EXCEPTION_RAISED → notification_events
+  ├─→ PAYOUT_INITIATED → notification_events
+  ├─→ INTEGRATION_ERROR → notification_events
+  └─→ SCHEME_PUBLISHED → notification_events
+        │
+        └─→ Notifications page → mark read / mark all read
+```
+
+### 12.5 Org & Domain Mapping
+
+The Org & Domain Mapping module provides read-only views of agent distribution across organizational dimensions. It reads from existing master tables (`ins_agents`, `ins_regions`, `channels`) and does not modify any data.
+
+---
+
+## Section 13 — Approval and Payout Flow Clarification
+
+The core approval pipeline remains:
+
+```
+DRAFT → APPROVED → INITIATED → PAID
+```
+
+**Key clarifications for additive modules:**
+
+1. **Review adjustments are additive** — they do NOT change the calculated incentive amount in `ins_incentive_results`. Adjustments are stored separately in `incentive_adjustments`.
+
+2. **Hold/release does not corrupt base calculations** — hold is recorded as an additive `HOLD` type entry in `incentive_adjustments`. The base result row is untouched. Release adds a corresponding `RELEASE` entry. Batch-approve checks for unapplied holds and skips held results.
+
+3. **Exports continue to use the intended payout source** — export routes (`/api/integration/export/oracle-ap`, `/api/integration/export/sap-fico`) query `ins_incentive_results` directly. They do not read from additive tables.
+
+4. **Exception resolution does not change incentive result status** — resolving an exception in `operational_exceptions` updates only that table. It does not trigger any status change in `ins_incentive_results` unless explicitly coded in a separate workflow.
+
+5. **Batch approve mirrors existing approval logic** — the batch-approve endpoint uses the same approval pattern as the existing bulk-approve, additionally writing audit records to `incentive_review_actions`.
+
+---
+
+## Section 14 — Additive Tables Reference
+
+Migration `006_additive_tables.sql` creates four tables. These tables are INSERT-only from the perspective of the calculation engine and do NOT modify any existing table.
+
+### 14.1 incentive_adjustments
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Auto-increment primary key |
+| result_id | INTEGER FK | References ins_incentive_results(id) |
+| adjustment_amount | DECIMAL(15,2) | Adjustment value (positive or negative) |
+| adjustment_type | VARCHAR | MANUAL, HOLD, RELEASE, CORRECTION, CLAWBACK |
+| reason | TEXT | Reason for adjustment |
+| created_by | VARCHAR | User who created the adjustment |
+| created_at | TIMESTAMP | Creation timestamp |
+| notes | TEXT | Additional notes |
+
+**Purpose:** Store manual adjustments separately from calculated results.
+**Who writes:** Review Adjustments API (`POST /api/review-adjustments/:id/adjust`, `hold`, `release`).
+**Relation to existing tables:** References `ins_incentive_results(id)` via FK. Does not modify the referenced row.
+**Impact on calculations:** None. The calculation engine does not read this table.
+
+### 14.2 incentive_review_actions
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Auto-increment primary key |
+| result_id | INTEGER FK | References ins_incentive_results(id) |
+| action | VARCHAR | APPROVE, HOLD, RELEASE, ADJUST, BATCH_APPROVE, ESCALATE |
+| actor | VARCHAR | User who performed the action |
+| details | JSONB | Action-specific metadata |
+| created_at | TIMESTAMP | Action timestamp |
+
+**Purpose:** Audit trail for all review actions on incentive results.
+**Who writes:** Review Adjustments API (all mutating endpoints).
+**Relation to existing tables:** References `ins_incentive_results(id)` via FK. Read-only relationship.
+**Impact on calculations:** None.
+
+### 14.3 operational_exceptions
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Auto-increment primary key |
+| exception_type | VARCHAR | Type of exception (e.g., DATA_QUALITY, INTEGRATION_ERROR) |
+| source_system | VARCHAR | Origin system (e.g., LifeAsia, Penta) |
+| severity | VARCHAR | LOW, MEDIUM, HIGH, CRITICAL |
+| entity_type | VARCHAR | Type of affected entity |
+| entity_id | VARCHAR | ID of affected entity |
+| description | TEXT | Human-readable description |
+| before_value | TEXT | Value before the issue |
+| after_value | TEXT | Value after the issue |
+| reason_code | VARCHAR | Categorization code |
+| status | VARCHAR | OPEN, INVESTIGATING, RESOLVED, DISMISSED |
+| resolved_by | VARCHAR | User who resolved |
+| resolved_at | TIMESTAMP | Resolution timestamp |
+| resolution_note | TEXT | Resolution notes |
+| created_at | TIMESTAMP | Creation timestamp |
+
+**Purpose:** Log data quality issues, integration errors, and calculation anomalies.
+**Who writes:** Application code during data processing; resolved via Exception Log API.
+**Relation to existing tables:** Standalone. References entities by type/ID but no foreign key to result tables.
+**Impact on calculations:** None.
+
+### 14.4 notification_events
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Auto-increment primary key |
+| event_type | VARCHAR | CALCULATION_COMPLETE, APPROVAL_REQUIRED, EXCEPTION_RAISED, PAYOUT_INITIATED, INTEGRATION_ERROR, SCHEME_PUBLISHED |
+| title | VARCHAR | Notification title |
+| message | TEXT | Notification message |
+| severity | VARCHAR | INFO, WARNING, ERROR, SUCCESS |
+| is_read | BOOLEAN | Read status (default: false) |
+| target_user | VARCHAR | Target user for the notification |
+| entity_type | VARCHAR | Related entity type |
+| entity_id | VARCHAR | Related entity ID |
+| created_at | TIMESTAMP | Creation timestamp |
+
+**Purpose:** Store notification events for dashboard display.
+**Who writes:** Application code on significant events; read/updated via Notifications API.
+**Relation to existing tables:** Standalone. No FK to calculation tables.
+**Impact on calculations:** None.
+
+---
+
+## Section 15 — New APIs and Their Frontend Role
+
+| API Group | Frontend Page | How the Page Uses It |
+|-----------|--------------|---------------------|
+| `/api/review-adjustments` | Review & Adjustments (`/review-adjustments`) | Lists results with adjustment totals, opens detail drawer, applies adjustments, manages holds, batch approves |
+| `/api/exception-log` | Exception Log (`/exception-log`) | Paginated exception list with severity badges, detail view, resolve/dismiss actions |
+| `/api/dashboard/executive-summary` | Dashboard (`/dashboard`) | KPI cards, alert badges, pipeline chart, channel performance bar chart, activity feed |
+| `/api/system-status/summary` | System Status (`/system-status`) | Database connection indicator, sync timestamps, integration health cards, file processing counts |
+| `/api/notifications` | Notifications (`/notifications`) | Notification list with unread count badge, mark-read actions, mark-all-read bulk action |
+| `/api/org-domain-mapping` | Org & Domain Mapping (`/org-domain-mapping`) | Four-tab grouped view (region, channel, branch, designation) with summary cards and data tables |
+| `/api/kpi-config/*` | KPI Config (`/kpi-config`) | Registry table with search/stats, formula architect panel, validation feedback, detail slide panel |
+| `/api/programs/:id/preview` | Scheme Management (`/scheme-management`) | Program preview panel with KPIs, payout rules, qualifying rules, agent count, result stats |
+
+All frontend pages use RTK Query hooks from `client/src/store/apiSlice.js` for data fetching. The enterprise UI components from `client/src/components/ui/` provide consistent styling.
+
+---
+
+## Section 16 — Why the Redesign Does Not Change Calculation Math
+
+This section documents why the UI redesign, additive APIs, and new tables have **zero impact** on the core calculation engine.
+
+### 16.1 Core Result Tables — Unchanged
+
+The calculation engine writes exclusively to `ins_incentive_results` via UPSERT. The additive tables (`incentive_adjustments`, `incentive_review_actions`, `operational_exceptions`, `notification_events`) are never referenced in any calculation query.
+
+### 16.2 Core Rate Lookup — Unchanged
+
+Rate lookup queries in `insuranceCalcEngine.js` read from `ins_incentive_rates`, `ins_products`, and `ins_persistency_gates`. These tables are not modified by any additive migration or route.
+
+### 16.3 Persistency Logic — Unchanged
+
+Persistency gate checks read from `ins_persistency_gates` and `persistency_data`. The additive modules do not write to or read from these tables during calculation.
+
+### 16.4 Override Logic — Unchanged
+
+MLM override calculations read from `ins_mlm_override_rates` and `ins_agents`. No additive module modifies these tables.
+
+### 16.5 Additive Modules Sit Around the Engine, Not Inside It
+
+```
+                    ┌─────────────────────┐
+                    │  Calculation Engine  │
+                    │  (insuranceCalcEngine│
+                    │   .js — 177 lines)  │
+                    │                     │
+                    │  Reads: kpi_summary, │
+                    │  rates, products,    │
+                    │  persistency, agents,│
+                    │  mlm_override_rates  │
+                    │                     │
+                    │  Writes: incentive   │
+                    │  _results (UPSERT)   │
+                    └──────────┬──────────┘
+                               │
+              Results flow to existing tables
+                               │
+    ┌──────────┬───────────────┼───────────────┬──────────┐
+    │          │               │               │          │
+    ▼          ▼               ▼               ▼          ▼
+ Review    Exception      Notification    Audit Trail   Export
+Adjustments  Log           Events         (review       (Oracle/
+(additive) (additive)     (additive)      actions)      SAP)
+                                          (additive)
+```
+
+### 16.6 Regression Tests and SQL Audits Confirm Integrity
+
+- **calculationRegressionTest.js** — 36 tests confirming:
+  - Baseline calculation totals unchanged (127,550 self-incentive, 15,910 override)
+  - Top earner values intact (AGT-JR-005 = 34,800)
+  - Approval counts and export records consistent
+  - Additive tables do not corrupt existing data
+
+- **calculationQueryAudit.sql** — SQL queries validating:
+  - No ALTER/DROP statements in additive migration
+  - No triggers or stored procedures added
+  - No references to additive tables in calculation engine
+
+- **POST_CHANGE_CALCULATION_AUDIT.md** — Full audit documenting:
+  - Core calculation paths inspected
+  - Approval workflow paths inspected
+  - Payout and export eligibility paths inspected
+  - Final verdict: SAFE
+
+---
+
+## Section 17 — Testing & Regression
+
+### 17.1 E2E Tests
+
+**File:** `server/src/tests/e2e/fullFlowTest.js`
+**Tests:** 46 tests (T01–T46)
+**Coverage:** AUTH → DATA UPLOAD → CALCULATION → APPROVAL → ADJUSTMENTS → EXPORT → INTEGRATION STATUS
+
+Run:
+```bash
+cd server
+node src/tests/e2e/fullFlowTest.js
+```
+
+Requires a running server at `http://localhost:5000/api` with seeded database.
+
+### 17.2 Calculation Regression Tests
+
+**File:** `server/src/tests/regression/calculationRegressionTest.js`
+**Tests:** 36 tests (R01–R36)
+**Coverage:**
+- Baseline value assertions (total records, self-incentive, override totals)
+- Top earner integrity checks
+- Approval count verification
+- Export record consistency
+- Additive table isolation checks
+- Status and export verification
+
+Run:
+```bash
+cd server
+node src/tests/regression/calculationRegressionTest.js
+```
+
+### 17.3 SQL Audit Queries
+
+**File:** `server/src/tests/regression/calculationQueryAudit.sql`
+**Purpose:** Database-level regression queries for manual or automated post-deployment validation.
+
+### 17.4 Post-Change Calculation Audit
+
+**Document:** `docs/POST_CHANGE_CALCULATION_AUDIT.md`
+**Purpose:** Comprehensive audit verifying that new features do not impact the calculation engine, approval workflow, payout pipeline, or export logic.
+
+---
+
+## Section 18 — UAT Readiness
+
+A complete UAT package is maintained under `docs/UAT/`. These documents support formal user acceptance testing.
+
+| File | Purpose |
+|------|---------|
+| `UAT_TEST_SCRIPT.md` | Detailed test scripts with step-by-step instructions |
+| `UAT_EXPECTED_RESULTS.md` | Expected outcomes for each test scenario |
+| `UAT_TEST_DATA_MATRIX.md` | Test data scenarios covering edge cases |
+| `UAT_DEFECT_LOG_TEMPLATE.xlsx` | Excel template for logging defects during UAT |
+| `UAT_SIGNOFF_CHECKLIST.md` | Sign-off requirements and approval checklist |
+| `UAT_EXECUTION_PLAN.md` | UAT execution timeline and resource plan |
+| `UAT_DAILY_STATUS_TEMPLATE.md` | Daily status report template |
+| `UAT_DEFECT_TRIAGE_GUIDE.md` | Defect severity assessment and triage process |
+| `UAT_GO_LIVE_READINESS.md` | Go-live readiness criteria and checklist |
+| `UAT_DEFECT_FIX_WORKFLOW.md` | Defect fix and retest workflow |
+| `UAT_DEFECT_TO_MODULE_MAPPING.md` | Maps defects to system modules for tracking |
+| `UAT_RISK_BASED_RETEST_MATRIX.md` | Risk-based retesting priority matrix |
+| `UAT_HOTFIX_CHECKLIST.md` | Emergency hotfix procedures during UAT |
+
+---
+
+## Section 19 — Security & Access Notes
+
+### 19.1 Route Authentication
+
+| Route Group | Middleware | Notes |
+|-------------|-----------|-------|
+| Review Adjustments | `userAuth` | All 7 endpoints require user token |
+| Exception Log | `userAuth` | All 3 endpoints require user token |
+| Executive Summary | `userAuth` | Requires user token |
+| System Status | `userAuth` | Requires user token |
+| Notifications | `userAuth` | All 3 endpoints require user token |
+| Org Domain Mapping | `userAuth` | Requires user token |
+| KPI Config | `userAuth` | All 3 endpoints require user token |
+| Integration Inbound | `systemAuth` | System-to-system token (Penta, LifeAsia) |
+| Integration Export | `userAuth` | User token for export operations |
+| Data Upload / Masters | None | No auth middleware on upload, agents, products, rates, etc. |
+
+### 19.2 Executive Summary Auth Observation
+
+The executive summary endpoint (`GET /api/dashboard/executive-summary`) uses `userAuth` middleware but does not implement additional role-based access control. Any authenticated user can access executive-level data. This is noted as an observation — consider adding role checks if executive data should be restricted.
+
+### 19.3 Additive APIs and Calculation Controls
+
+- Additive APIs do not weaken calculation controls
+- The calculation engine has zero references to additive tables
+- Review adjustments write only to `incentive_adjustments` (never to `ins_incentive_results` for amount changes)
+- Batch-approve is the only additive endpoint that updates `ins_incentive_results.status`, and it mirrors existing approval logic
+
+### 19.4 Parameterized SQL
+
+All new route queries use parameterized SQL via `pg` driver placeholders (`$1`, `$2`, etc.). No string concatenation or template literals are used in query construction. This prevents SQL injection in all additive routes.
+
+### 19.5 Related Security Documents
+
+- [POST_CHANGE_CALCULATION_AUDIT.md](./POST_CHANGE_CALCULATION_AUDIT.md) — Full security and integrity audit
+- [BACKEND_SAFE_EXTENSION_NOTES.md](./BACKEND_SAFE_EXTENSION_NOTES.md) — Risk classification of all new endpoints
+- [CHANGE_IMPACT_ANALYSIS.md](./CHANGE_IMPACT_ANALYSIS.md) — Impact analysis for additive changes
+- [UI_REDESIGN_EXECUTION_PLAN.md](./UI_REDESIGN_EXECUTION_PLAN.md) — UI redesign phasing and frozen files
+- [PROTOTYPE_ALIGNMENT_PLAN.md](./PROTOTYPE_ALIGNMENT_PLAN.md) — Prototype-to-implementation mapping
