@@ -8,12 +8,39 @@ import { ERRORS, apiError } from '../utils/errorCodes.js';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
-// ── Validation helper ──
+// ── Validation helpers ──
 function validateColumns(rows, required) {
   if (!rows.length) return 'File is empty';
   const headers = Object.keys(rows[0]);
   const missing = required.filter(c => !headers.includes(c));
   return missing.length ? `Missing columns: ${missing.join(', ')}` : null;
+}
+
+/**
+ * Validate a date string is parseable and in YYYY-MM-DD format.
+ * Rejects ambiguous formats and out-of-range days.
+ */
+const isValidDate = (str) => {
+  if (str == null || str === '') return false;
+  const match = String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false; // reject non-YYYY-MM-DD formats
+  const [, y, m, d] = match.map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+};
+
+const VALID_PERSISTENCY_MONTHS = [13, 25, 37, 49, 61];
+
+/**
+ * Check if the same filename was already processed successfully.
+ * Returns true when a duplicate is found.
+ */
+async function isDuplicateFile(filename) {
+  const rows = await query(
+    `SELECT id FROM file_processing_log WHERE file_name=$1 AND status='SUCCESS'`,
+    [filename]
+  );
+  return rows.length > 0;
 }
 
 /**
@@ -69,11 +96,30 @@ function validateColumns(rows, required) {
  */
 router.post('/policy-transactions', upload.single('file'), async (req, res) => {
   try {
+    // FIX 4: Duplicate filename check
+    if (await isDuplicateFile(req.file.originalname)) {
+      return res.status(ERRORS.INT_003.status).json(apiError('INT_003'));
+    }
+
     const rows = await parseCSV(req.file.buffer);
     const REQUIRED = ['policy_number','agent_code','product_code','transaction_type',
                       'premium_amount','annualized_premium','paid_date'];
     const err = validateColumns(rows, REQUIRED);
     if (err) return res.status(ERRORS.VAL_007.status).json(apiError('VAL_007', { message: err }));
+
+    // FIX 2: Date format validation
+    const DATE_FIELDS = ['issue_date', 'due_date', 'paid_date'];
+    const dateErrors = [];
+    rows.forEach((row, index) => {
+      DATE_FIELDS.forEach(field => {
+        if (row[field] && !isValidDate(row[field])) {
+          dateErrors.push({ row: index + 2, field, value: row[field] });
+        }
+      });
+    });
+    if (dateErrors.length > 0) {
+      return res.status(ERRORS.VAL_002.status).json(apiError('VAL_002', { invalid_dates: dateErrors }));
+    }
 
     // Pre-fetch lookup maps
     const channelRows = await query(`SELECT id, name FROM channels`);
@@ -170,6 +216,11 @@ router.post('/policy-transactions', upload.single('file'), async (req, res) => {
  */
 router.post('/agents', upload.single('file'), async (req, res) => {
   try {
+    // FIX 4: Duplicate filename check
+    if (await isDuplicateFile(req.file.originalname)) {
+      return res.status(ERRORS.INT_003.status).json(apiError('INT_003'));
+    }
+
     const rows = await parseCSV(req.file.buffer);
     const REQUIRED = ['agent_code','agent_name','channel_code','region_code','hierarchy_level'];
     const err = validateColumns(rows, REQUIRED);
@@ -283,6 +334,11 @@ router.post('/agents', upload.single('file'), async (req, res) => {
  */
 router.post('/persistency', upload.single('file'), async (req, res) => {
   try {
+    // FIX 4: Duplicate filename check
+    if (await isDuplicateFile(req.file.originalname)) {
+      return res.status(ERRORS.INT_003.status).json(apiError('INT_003'));
+    }
+
     const { programId } = req.body;
     const rows = await parseCSV(req.file.buffer);
     const REQUIRED = ['agent_code','persistency_month','period_start','period_end',
@@ -290,7 +346,44 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
     const err = validateColumns(rows, REQUIRED);
     if (err) return res.status(ERRORS.VAL_007.status).json(apiError('VAL_007', { message: err }));
 
-    const mapped = rows.map(r => [
+    // FIX 1: Row-level persistency validation
+    const invalidRows = [];
+    const validRows = [];
+
+    rows.forEach((row, index) => {
+      const month = Number(row.persistency_month);
+      if (!VALID_PERSISTENCY_MONTHS.includes(month)) {
+        invalidRows.push({
+          row: index + 2,
+          agent_code: row.agent_code,
+          persistency_month: row.persistency_month,
+          error: `VAL_010: persistency_month must be one of: ${VALID_PERSISTENCY_MONTHS.join(', ')}`
+        });
+      } else if (row.policies_due == null || row.policies_due === '' || isNaN(Number(row.policies_due)) || Number(row.policies_due) < 0) {
+        invalidRows.push({
+          row: index + 2,
+          error: 'VAL_004: policies_due must be a positive number'
+        });
+      } else if (Number(row.policies_renewed) > Number(row.policies_due)) {
+        invalidRows.push({
+          row: index + 2,
+          error: 'VAL_004: policies_renewed cannot exceed policies_due'
+        });
+      } else {
+        validRows.push(row);
+      }
+    });
+
+    if (invalidRows.length > 0 && validRows.length === 0) {
+      return res.status(ERRORS.VAL_010.status).json({
+        success: false,
+        error: 'All rows failed validation',
+        code: 'VAL_010',
+        invalid_rows: invalidRows
+      });
+    }
+
+    const mapped = validRows.map(r => [
       r.agent_code, programId, r.persistency_month,
       r.period_start, r.period_end, r.policies_due, r.policies_renewed
     ]);
@@ -310,7 +403,13 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
        policies_renewed=EXCLUDED.policies_renewed`
     );
 
-    res.json({ success: true, inserted: count });
+    res.json({
+      success: true,
+      inserted: count,
+      skipped: invalidRows.length,
+      invalid_rows: invalidRows,
+      total: rows.length
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -362,8 +461,41 @@ router.post('/persistency', upload.single('file'), async (req, res) => {
  */
 router.post('/incentive-rates', upload.single('file'), async (req, res) => {
   try {
+    // FIX 4: Duplicate filename check
+    if (await isDuplicateFile(req.file.originalname)) {
+      return res.status(ERRORS.INT_003.status).json(apiError('INT_003'));
+    }
+
     const { programId } = req.body;
     const rows = await parseCSV(req.file.buffer);
+
+    // FIX 3: Product code existence check
+    const products = await query(
+      'SELECT product_code FROM ins_products WHERE is_active=TRUE'
+    );
+    const validCodes = new Set(products.map(r => r.product_code));
+    const unknownProducts = rows
+      .filter(r => r.product_code && !validCodes.has(r.product_code))
+      .map(r => r.product_code);
+    if (unknownProducts.length) {
+      return res.status(ERRORS.VAL_006.status).json(apiError('VAL_006', {
+        unknown_products: [...new Set(unknownProducts)]
+      }));
+    }
+
+    // FIX 2: Date format validation
+    const DATE_FIELDS = ['effective_from', 'effective_to'];
+    const dateErrors = [];
+    rows.forEach((row, index) => {
+      DATE_FIELDS.forEach(field => {
+        if (row[field] && !isValidDate(row[field])) {
+          dateErrors.push({ row: index + 2, field, value: row[field] });
+        }
+      });
+    });
+    if (dateErrors.length > 0) {
+      return res.status(ERRORS.VAL_002.status).json(apiError('VAL_002', { invalid_dates: dateErrors }));
+    }
 
     // Pre-fetch channel lookup
     const channelRows = await query(`SELECT id, name FROM channels`);

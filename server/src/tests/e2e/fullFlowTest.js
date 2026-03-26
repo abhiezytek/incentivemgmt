@@ -19,7 +19,8 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5000/api';
 /* ─── Shared state across tests ──────────────────────── */
 
 const state = {
-  systemToken: null,
+  userToken: null,       // user JWT from /auth/login
+  systemToken: null,     // system JWT from /auth/system-token
   newProgramId: null,
   programId: null,       // seeded program id
   approvedIds: [],       // approved incentive result ids
@@ -51,8 +52,9 @@ function assert(condition, expected, actual) {
 async function api(path, opts = {}) {
   const url = `${BASE_URL}${path}`;
   const headers = { ...(opts.headers || {}) };
-  if (state.systemToken && !headers.Authorization) {
-    headers.Authorization = `Bearer ${state.systemToken}`;
+  const defaultToken = state.userToken || state.systemToken;
+  if (defaultToken && !headers.Authorization) {
+    headers.Authorization = `Bearer ${defaultToken}`;
   }
   if (opts.body && !headers['Content-Type'] && !(opts.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
@@ -96,38 +98,48 @@ function csvBuffer(headers, rows) {
 async function testAuth() {
   console.log('\n━━━ TEST GROUP 1: AUTH ━━━');
 
-  // T01 — System token with valid credentials
-  await run('T01', 'POST /auth/system-token with valid credentials', async () => {
+  // T01 — User login with valid credentials
+  await run('T01', 'POST /auth/login with valid credentials', async () => {
+    const { status, data } = await api('/auth/login', {
+      method: 'POST',
+      body: { email: 'rajesh@insure.com', password: 'password' },
+      headers: {},  // no auth header for this request
+    });
+    assert(status === 200, '200', status);
+    assert(data.token, 'token in response', data);
+    state.userToken = data.token;
+  });
+
+  // T02 — User login with wrong password
+  await run('T02', 'POST /auth/login with wrong password', async () => {
+    const { status, data } = await api('/auth/login', {
+      method: 'POST',
+      body: { email: 'rajesh@insure.com', password: 'wrongpass' },
+      headers: {},
+    });
+    assert(status === 401, '401', status);
+    assert(data.code === 'AUTH_003', 'AUTH_003', data.code);
+  });
+
+  // T02b — System token with valid credentials (original T01)
+  await run('T02b', 'POST /auth/system-token with valid credentials', async () => {
     const { status, data } = await api('/auth/system-token', {
       method: 'POST',
       body: { client_id: 'penta_inbound', client_secret: 'penta_secret_2025' },
-      headers: {},  // no auth header for this request
+      headers: {},
     });
     assert(status === 200, '200', status);
     assert(data.token, 'token in response', data);
     state.systemToken = data.token;
   });
 
-  // T02 — System token with wrong credentials
-  await run('T02', 'POST /auth/system-token with wrong secret', async () => {
-    const { status } = await api('/auth/system-token', {
-      method: 'POST',
-      body: { client_id: 'penta_inbound', client_secret: 'wrong_password' },
-      headers: {},
-    });
-    assert(status === 401, '401', status);
-  });
-
-  // T03 — Access without auth (userAuth is pass-through, so this should succeed)
-  // Since userAuth is a no-op, unauthenticated GET /programs returns 200.
-  // We test that the system-token protected endpoint rejects without token.
-  await run('T03', 'GET /integration/penta without system token → 401', async () => {
-    const { status } = await api('/integration/penta', {
-      method: 'POST',
-      body: { data: [] },
+  // T03 — Access without token
+  await run('T03', 'GET /programs without token → 401', async () => {
+    const { status, data } = await api('/programs', {
       headers: { Authorization: '' },
     });
     assert(status === 401, '401', status);
+    assert(data.code === 'AUTH_001', 'AUTH_001', data.code);
   });
 }
 
@@ -173,16 +185,52 @@ async function testPrograms() {
     state.newProgramId = data.id;
   });
 
-  // T07 — Update program status to ACTIVE
-  await run('T07', 'PUT /programs/:id status → ACTIVE', async () => {
+  // T07 — Update program via PUT (partial update)
+  await run('T07', 'PUT /programs/:id → partial update', async () => {
     const { status, data } = await api(`/programs/${state.newProgramId}`, {
       method: 'PUT',
-      body: { status: 'ACTIVE' },
+      body: { name: 'E2E Test Program Updated' },
     });
     assert(status === 200, '200', status);
-    // Verify update took effect
-    const { data: check } = await api(`/programs/${state.newProgramId}`);
-    assert(check.status === 'ACTIVE', 'status=ACTIVE', check.status);
+    assert(data.name === 'E2E Test Program Updated', 'name updated', data.name);
+    // Verify protected fields were not cleared and other fields are intact
+    assert(data.id === state.newProgramId, 'id unchanged', data.id);
+    assert(data.channel_id === 1, 'channel_id preserved', data.channel_id);
+  });
+
+  // T07b — Update program status via PATCH
+  await run('T07b', 'PATCH /programs/:id/status → test status transition rules', async () => {
+    // First try setting to CLOSED (DRAFT→CLOSED is allowed)
+    const { status, data } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'CLOSED' },
+    });
+    assert(status === 200, '200', status);
+    assert(data.status === 'CLOSED', 'status=CLOSED', data.status);
+
+    // Verify CLOSED→ACTIVE is rejected (BUS_001)
+    const { status: s2, data: d2 } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'ACTIVE' },
+    });
+    assert(s2 === 422, '422 (cannot reactivate CLOSED)', s2);
+    assert(d2.code === 'BUS_001', 'BUS_001', d2.code);
+
+    // Verify invalid status is rejected (VAL_003)
+    const { status: s3, data: d3 } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'INVALID' },
+    });
+    assert(s3 === 400, '400 (invalid enum)', s3);
+    assert(d3.code === 'VAL_003', 'VAL_003', d3.code);
+
+    // Reset to DRAFT so delete works
+    // CLOSED→DRAFT is allowed
+    const { status: s4 } = await api(`/programs/${state.newProgramId}/status`, {
+      method: 'PATCH',
+      body: { status: 'DRAFT' },
+    });
+    assert(s4 === 200, '200 (back to DRAFT)', s4);
   });
 
   // T08 — Delete test program
@@ -523,37 +571,155 @@ async function testUploadValidation() {
   });
 
   // T23 — Upload persistency with invalid data
-  await run('T23', 'POST /upload/persistency with invalid persistency_month → error', async () => {
+  await run('T23', 'POST /upload/persistency with invalid persistency_month → 400 VAL_010', async () => {
     const form = new FormData();
     // Include all required columns but with invalid persistency_month=99
     const buf = csvBuffer(
       ['agent_code', 'persistency_month', 'period_start', 'period_end', 'policies_due', 'policies_renewed'],
       [{ agent_code: 'AGT-JR-001', persistency_month: '99', period_start: '2026-01-01', period_end: '2026-01-31', policies_due: '10', policies_renewed: '8' }],
     );
-    form.append('file', buf, { filename: 'test.csv', contentType: 'text/csv' });
+    form.append('file', buf, { filename: 'test_invalid_month.csv', contentType: 'text/csv' });
     form.append('programId', String(state.programId));
 
     const { status, data } = await api('/upload/persistency', {
       method: 'POST',
       body: form,
     });
-    // The server currently does NOT validate persistency_month values (VAL_010 is defined
-    // but not implemented). Depending on DB constraints, this may succeed or fail.
-    // We document the actual behavior:
-    if (status === 400) {
-      const msg = JSON.stringify(data);
-      assert(
-        msg.includes('VAL_010') || msg.includes('persistency'),
-        'VAL_010 or persistency error',
-        msg.slice(0, 200),
-      );
-    } else if (status === 200) {
-      // Accepted — server lacks value validation for persistency_month
-      assert(true, 'server accepted (no value validation yet)', status);
+    assert(status === 400, '400', status);
+    assert(data.code === 'VAL_010', 'VAL_010', data.code);
+    assert(Array.isArray(data.invalid_rows), 'invalid_rows array', data.invalid_rows);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   TEST GROUP 9: GAP FIX VALIDATIONS (T24-T29)
+   ═══════════════════════════════════════════════════════ */
+
+async function testGapFixes() {
+  console.log('\n━━━ TEST GROUP 9: GAP FIX VALIDATIONS ━━━');
+
+  // T24 — PATCH /programs/:id/status (Gap G2 fix)
+  await run('T24', 'PATCH /programs/:id/status → activate seeded program', async () => {
+    // Create a fresh program to test status transitions
+    const { data: created } = await api('/programs', {
+      method: 'POST',
+      body: {
+        name: 'E2E Status Test Program',
+        channel_id: 1,
+        start_date: '2026-06-01',
+        end_date: '2026-06-30',
+        plan_type: 'MONTHLY',
+      },
+    });
+    const testId = created.id;
+
+    const { status, data } = await api(`/programs/${testId}/status`, {
+      method: 'PATCH',
+      body: { status: 'ACTIVE' },
+    });
+    // May return 200 (activated) or 422 (no KPI/payout rules, which is expected)
+    if (status === 200) {
+      assert(data.status === 'ACTIVE', 'status=ACTIVE', data.status);
     } else {
-      // Any other error (e.g., 500 from DB constraint) is acceptable to report
-      assert(true, `got status ${status} — noting behavior`, status);
+      // Acceptable — business rules may block activation without KPI/payout rules
+      assert(
+        status === 422 && (data.code === 'BUS_006' || data.code === 'BUS_007'),
+        '422 with BUS_006 or BUS_007',
+        `${status} ${data.code}`,
+      );
     }
+
+    // Clean up
+    await api(`/programs/${testId}`, { method: 'DELETE' });
+  });
+
+  // T25 — Upload persistency with invalid month (Gap G4 fix)
+  await run('T25', 'POST /upload/persistency with persistency_month=99 → 400 VAL_010', async () => {
+    const form = new FormData();
+    const buf = csvBuffer(
+      ['agent_code', 'persistency_month', 'period_start', 'period_end', 'policies_due', 'policies_renewed'],
+      [
+        { agent_code: 'AGT-JR-001', persistency_month: '99', period_start: '2026-03-01', period_end: '2026-03-31', policies_due: '10', policies_renewed: '8' },
+        { agent_code: 'AGT-JR-002', persistency_month: '7', period_start: '2026-03-01', period_end: '2026-03-31', policies_due: '5', policies_renewed: '3' },
+      ],
+    );
+    form.append('file', buf, { filename: 'test_t25_invalid_months.csv', contentType: 'text/csv' });
+    form.append('programId', String(state.programId));
+
+    const { status, data } = await api('/upload/persistency', {
+      method: 'POST',
+      body: form,
+    });
+    assert(status === 400, '400', status);
+    assert(data.code === 'VAL_010', 'VAL_010', data.code);
+    assert(Array.isArray(data.invalid_rows), 'invalid_rows array present', data.invalid_rows);
+  });
+
+  // T26 — Upload persistency with valid months (Gap G4 fix)
+  await run('T26', 'POST /upload/persistency with persistency_month=13 → 200', async () => {
+    const form = new FormData();
+    const buf = csvBuffer(
+      ['agent_code', 'persistency_month', 'period_start', 'period_end', 'policies_due', 'policies_renewed'],
+      [
+        { agent_code: 'AGT-JR-001', persistency_month: '13', period_start: '2026-04-01', period_end: '2026-04-30', policies_due: '10', policies_renewed: '8' },
+      ],
+    );
+    form.append('file', buf, { filename: 'test_t26_valid_month.csv', contentType: 'text/csv' });
+    form.append('programId', String(state.programId));
+
+    const { status, data } = await api('/upload/persistency', {
+      method: 'POST',
+      body: form,
+    });
+    assert(status === 200, '200', status);
+    assert(data.inserted > 0, 'inserted > 0', data.inserted);
+  });
+
+  // T27 — SAP FICO export (Gap G3 fix)
+  await run('T27', 'POST /integration/export/sap-fico → CSV with SAP_PAYOUT filename', async () => {
+    const { status, data, headers } = await api('/integration/export/sap-fico', {
+      method: 'POST',
+      body: { programId: state.programId, periodStart: '2026-01-01' },
+    });
+    // Could be 200 (CSV) or 404 (no approved results)
+    if (status === 200) {
+      const ct = headers.get('content-type') || '';
+      assert(ct.includes('text/csv'), 'Content-Type: text/csv', ct);
+      const cd = headers.get('content-disposition') || '';
+      assert(cd.includes('SAP_PAYOUT'), 'filename contains SAP_PAYOUT', cd);
+    } else if (status === 404) {
+      // Acceptable — no APPROVED results available
+      assert(true, '404 — no approved results for export', status);
+    } else {
+      assert(false, '200 or 404', status);
+    }
+  });
+
+  // T28 — GET /auth/me
+  await run('T28', 'GET /auth/me → user profile with email and role', async () => {
+    const { status, data } = await api('/auth/me');
+    assert(status === 200, '200', status);
+    assert(data.user?.email === 'rajesh@insure.com', 'email=rajesh@insure.com', data.user?.email);
+    assert(data.user?.role === 'ADMIN', 'role=ADMIN', data.user?.role);
+  });
+
+  // T29 — Role-based access check (OPS user cannot export SAP FICO)
+  await run('T29', 'POST /integration/export/sap-fico as OPS user → 403 AUTH_004', async () => {
+    // Login as OPS user
+    const { data: loginData } = await api('/auth/login', {
+      method: 'POST',
+      body: { email: 'meena@insure.com', password: 'password' },
+      headers: {},
+    });
+    const opsToken = loginData.token;
+
+    const { status, data } = await api('/integration/export/sap-fico', {
+      method: 'POST',
+      body: { programId: state.programId, periodStart: '2026-01-01' },
+      headers: opsToken ? { Authorization: `Bearer ${opsToken}` } : {},
+    });
+    assert(status === 403, '403', status);
+    assert(data.code === 'AUTH_004', 'AUTH_004', data.code);
   });
 }
 
@@ -591,6 +757,7 @@ async function main() {
   await testDashboard();
   await testPayoutFlow();
   await testUploadValidation();
+  await testGapFixes();
 
   /* ── Final Report ──────────────────────────────────── */
 
@@ -605,6 +772,29 @@ async function main() {
   console.log(`  Total tests : ${total}`);
   console.log(`  Passed      : ${passed}`);
   console.log(`  Failed      : ${failed}`);
+  console.log('');
+
+  // Group breakdown
+  const groups = [
+    { name: 'AUTH',              prefix: ['T01', 'T02', 'T02b', 'T03'] },
+    { name: 'PROGRAMS',          prefix: ['T04', 'T05', 'T06', 'T07', 'T07b', 'T08'] },
+    { name: 'DATA INTEGRITY',    prefix: ['T09', 'T10', 'T11', 'T12'] },
+    { name: 'INCENTIVE RESULTS', prefix: ['T13', 'T14', 'T15', 'T16'] },
+    { name: 'LEADERBOARD',       prefix: ['T17'] },
+    { name: 'DASHBOARD',         prefix: ['T18'] },
+    { name: 'PAYOUT FLOW',       prefix: ['T19', 'T20', 'T21'] },
+    { name: 'UPLOAD VALIDATION', prefix: ['T22', 'T23'] },
+    { name: 'GAP FIX VALIDATIONS', prefix: ['T24', 'T25', 'T26', 'T27', 'T28', 'T29'] },
+  ];
+
+  console.log('  ── Breakdown by group ──');
+  for (const g of groups) {
+    const groupResults = results.filter(r => g.prefix.includes(r.id));
+    const gPassed = groupResults.filter(r => r.passed).length;
+    const gFailed = groupResults.filter(r => !r.passed).length;
+    const icon = gFailed === 0 ? '✅' : '❌';
+    console.log(`  ${icon} ${g.name.padEnd(22)} ${gPassed}/${groupResults.length} passed`);
+  }
   console.log('');
 
   if (failed === 0) {

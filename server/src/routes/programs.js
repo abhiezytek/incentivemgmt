@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { findAll, findById, insertRow, updateRow, deleteRow } from '../db/queryHelper.js';
+import { query } from '../db/pool.js';
 import { ERRORS, apiError } from '../utils/errorCodes.js';
 
 const router = Router();
 const TABLE = 'incentive_programs';
+const VALID_STATUSES = ['DRAFT', 'ACTIVE', 'CLOSED'];
+const PROTECTED_FIELDS = ['id', 'created_at', 'created_by'];
 
 /**
  * @swagger
@@ -331,9 +334,235 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
-    const row = await updateRow(TABLE, req.params.id, req.body);
+    // Filter out protected fields — only update provided fields
+    const updates = {};
+    for (const [key, value] of Object.entries(req.body)) {
+      if (!PROTECTED_FIELDS.includes(key)) {
+        updates[key] = value;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json(apiError('VAL_001', { fields: 'At least one updatable field is required' }));
+    }
+
+    const row = await updateRow(TABLE, req.params.id, updates);
     if (!row) return res.status(404).json(apiError('VAL_006', { field: 'program' }));
     res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/programs/{id}/status:
+ *   patch:
+ *     tags:
+ *       - Programs
+ *     summary: Update program status
+ *     description: >
+ *       Changes the status of an incentive program with validation rules.
+ *       Cannot transition from CLOSED to ACTIVE. Cannot set ACTIVE if
+ *       overlapping active programs exist, or if KPI/payout rules are missing.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Program ID
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, ACTIVE, CLOSED]
+ *                 example: ACTIVE
+ *     responses:
+ *       200:
+ *         description: Status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 status:
+ *                   type: string
+ *       400:
+ *         description: Invalid status value
+ *       404:
+ *         description: Program not found
+ *       409:
+ *         description: Overlapping active program
+ *       422:
+ *         description: Business rule violation
+ *       500:
+ *         description: Internal server error
+ */
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { status: newStatus } = req.body;
+
+    // 1. Validate status value
+    if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
+      return res.status(ERRORS.VAL_003.status).json(
+        apiError('VAL_003', { field: 'status', allowed: VALID_STATUSES })
+      );
+    }
+
+    // 2. Fetch current program
+    const program = await findById(TABLE, req.params.id);
+    if (!program) {
+      return res.status(404).json(apiError('VAL_006', { field: 'program' }));
+    }
+
+    // 3. Cannot transition from CLOSED back to ACTIVE
+    if (program.status === 'CLOSED' && newStatus === 'ACTIVE') {
+      return res.status(ERRORS.BUS_001.status).json(
+        apiError('BUS_001', { current: program.status, requested: newStatus })
+      );
+    }
+
+    // 4. Extra checks when activating
+    if (newStatus === 'ACTIVE') {
+      // Check overlapping active programs for same channel
+      const overlapping = await query(
+        `SELECT id FROM incentive_programs
+         WHERE channel_id = $1 AND status = 'ACTIVE'
+           AND id != $2
+           AND (start_date, end_date) OVERLAPS ($3, $4)`,
+        [program.channel_id, program.id, program.start_date, program.end_date]
+      );
+      if (overlapping.length > 0) {
+        return res.status(ERRORS.BUS_002.status).json(
+          apiError('BUS_002', { conflicting_program_ids: overlapping.map(r => r.id) })
+        );
+      }
+
+      // Check KPI rules exist
+      const kpis = await query(
+        'SELECT COUNT(*)::int AS count FROM kpi_definitions WHERE program_id = $1',
+        [program.id]
+      );
+      if (kpis[0].count === 0) {
+        return res.status(ERRORS.BUS_007.status).json(apiError('BUS_007'));
+      }
+
+      // Check payout rules exist
+      const payouts = await query(
+        'SELECT COUNT(*)::int AS count FROM payout_rules WHERE program_id = $1',
+        [program.id]
+      );
+      if (payouts[0].count === 0) {
+        return res.status(ERRORS.BUS_006.status).json(apiError('BUS_006'));
+      }
+    }
+
+    // 5. Update status
+    const updated = await updateRow(TABLE, req.params.id, {
+      status: newStatus,
+    });
+
+    // 6. Return updated program
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/programs/{id}/summary:
+ *   get:
+ *     tags:
+ *       - Programs
+ *     summary: Get program summary
+ *     description: >
+ *       Returns the program details along with KPI count, payout rule count,
+ *       agent count in the target channel, and whether calculation results exist.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Program ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Program summary
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 program:
+ *                   type: object
+ *                 kpi_count:
+ *                   type: integer
+ *                 payout_rule_count:
+ *                   type: integer
+ *                 agent_count:
+ *                   type: integer
+ *                 has_results:
+ *                   type: boolean
+ *       404:
+ *         description: Program not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:id/summary', async (req, res) => {
+  try {
+    const program = await findById(TABLE, req.params.id);
+    if (!program) {
+      return res.status(404).json(apiError('VAL_006', { field: 'program' }));
+    }
+
+    // KPI count
+    const kpis = await query(
+      'SELECT COUNT(*)::int AS count FROM kpi_definitions WHERE program_id = $1',
+      [program.id]
+    );
+
+    // Payout rule count
+    const payouts = await query(
+      'SELECT COUNT(*)::int AS count FROM payout_rules WHERE program_id = $1',
+      [program.id]
+    );
+
+    // Agent count in channel
+    const agents = await query(
+      'SELECT COUNT(*)::int AS count FROM users WHERE channel_id = $1 AND is_active = TRUE',
+      [program.channel_id]
+    );
+
+    // Has calculation results
+    const results = await query(
+      'SELECT COUNT(*)::int AS count FROM incentive_results WHERE program_id = $1',
+      [program.id]
+    );
+
+    res.json({
+      program,
+      kpi_count: kpis[0].count,
+      payout_rule_count: payouts[0].count,
+      agent_count: agents[0].count,
+      has_results: results[0].count > 0,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
