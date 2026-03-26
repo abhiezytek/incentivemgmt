@@ -1,11 +1,13 @@
 namespace Incentive.Infrastructure.Persistence.Sql;
 
 /// <summary>
-/// SQL queries for the programs preview endpoint.
-/// Ported from server/src/routes/programs.js (/:id/preview).
+/// SQL queries for the programs endpoints.
+/// Ported from server/src/routes/programs.js.
 /// </summary>
 public static class ProgramsSql
 {
+    // ── Preview (Wave 1) ──────────────────────────────
+
     public const string ChannelById = """
         SELECT name, code FROM channels WHERE id = @channelId
         """;
@@ -44,5 +46,36 @@ public static class ProgramsSql
         SELECT status, COUNT(*)::int AS count, COALESCE(SUM(total_incentive),0) AS total
         FROM ins_incentive_results WHERE program_id = @programId
         GROUP BY status
+        """;
+
+    // ── Summary (Wave 2) ──────────────────────────────
+
+    public const string KpiCountByProgram = """
+        SELECT COUNT(*)::int AS count FROM kpi_definitions WHERE program_id = @programId
+        """;
+
+    public const string PayoutRuleCountByProgram = """
+        SELECT COUNT(*)::int AS count FROM payout_rules WHERE program_id = @programId
+        """;
+
+    /// <summary>
+    /// Node.js uses 'users' table for agent count in summary. Preview uses ins_agents.
+    /// Preserving the Node behavior exactly.
+    /// </summary>
+    public const string AgentCountByChannel = """
+        SELECT COUNT(*)::int AS count FROM users WHERE channel_id = @channelId AND is_active = TRUE
+        """;
+
+    public const string ResultCountByProgram = """
+        SELECT COUNT(*)::int AS count FROM incentive_results WHERE program_id = @programId
+        """;
+
+    // ── Status validation (Wave 2) ────────────────────
+
+    public const string OverlappingActivePrograms = """
+        SELECT id FROM incentive_programs
+        WHERE channel_id = @channelId AND status = 'ACTIVE'
+          AND id != @programId
+          AND (start_date, end_date) OVERLAPS (@startDate, @endDate)
         """;
 }

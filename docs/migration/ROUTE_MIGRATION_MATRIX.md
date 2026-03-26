@@ -4,6 +4,7 @@
 > Priority: P1 = Wave 1 (read-only), P2 = Wave 2 (config), P3 = Wave 3 (workflow), P4 = Wave 4 (calc/export/integration)
 >
 > **Wave 1 Status**: ✅ = Migrated to .NET | ⬜ = Not yet migrated
+> **Wave 2 Status**: 🔵 = Migrated in Wave 2
 
 ---
 
@@ -13,12 +14,12 @@
 |-----------------|-------------|----------|---------|----------------------|---------------|----------|-------|
 | `programs.js` | GET | `/api/programs` | List all programs | `ProgramsController` | `GetAll()` | P1 | ✅ Migrated Wave 1 |
 | `programs.js` | GET | `/api/programs/:id` | Get single program | `ProgramsController` | `GetById(int id)` | P1 | ✅ Migrated Wave 1 |
-| `programs.js` | GET | `/api/programs/:id/summary` | Program summary with KPIs/payouts/results | `ProgramsController` | `GetSummary(int id)` | P1 | Read-only |
+| `programs.js` | GET | `/api/programs/:id/summary` | Program summary with KPIs/payouts/results | `ProgramsController` | `GetSummary(int id)` | P1 | 🔵 Migrated Wave 2 |
 | `programs.js` | GET | `/api/programs/:id/preview` | Calculation preview | `ProgramsController` | `GetPreview(int id)` | P2 | ✅ Migrated Wave 1 |
-| `programs.js` | POST | `/api/programs` | Create program | `ProgramsController` | `Create(CreateProgramRequest)` | P2 | Config write |
-| `programs.js` | PUT | `/api/programs/:id` | Update program | `ProgramsController` | `Update(int id, UpdateProgramRequest)` | P2 | Config write |
-| `programs.js` | PATCH | `/api/programs/:id/status` | Change status (DRAFT→ACTIVE→CLOSED) | `ProgramsController` | `ChangeStatus(int id, StatusRequest)` | P2 | Status transition validation |
-| `programs.js` | DELETE | `/api/programs/:id` | Delete program (DRAFT only) | `ProgramsController` | `Delete(int id)` | P2 | Guard: only DRAFT |
+| `programs.js` | POST | `/api/programs` | Create program | `ProgramsController` | `Create(Dictionary body)` | P2 | 🔵 Migrated Wave 2 |
+| `programs.js` | PUT | `/api/programs/:id` | Update program | `ProgramsController` | `Update(int id, Dictionary body)` | P2 | 🔵 Migrated Wave 2 |
+| `programs.js` | PATCH | `/api/programs/:id/status` | Change status (DRAFT→ACTIVE→CLOSED) | `ProgramsController` | `UpdateStatus(int id, Dictionary body)` | P2 | 🔵 Migrated Wave 2 |
+| `programs.js` | DELETE | `/api/programs/:id` | Delete program | `ProgramsController` | `Delete(int id)` | P2 | 🔵 Migrated Wave 2 |
 | `kpis.js` | GET | `/api/kpis` | List KPIs | `KpisController` | `GetAll()` | P1 | Read-only |
 | `kpis.js` | GET | `/api/kpis/:id` | Get KPI with milestones | `KpisController` | `GetById(int id)` | P1 | Read-only |
 | `kpis.js` | POST | `/api/kpis` | Create KPI | `KpisController` | `Create(CreateKpiRequest)` | P2 | Config write |
@@ -114,9 +115,9 @@
 | `notifications.js` | POST | `/api/notifications/mark-all-read` | Mark all read | `NotificationsController` | `MarkAllRead()` | P2 | ✅ Migrated Wave 1 |
 | `systemStatus.js` | GET | `/api/system-status/summary` | System health | `SystemStatusController` | `GetSummary()` | P1 | ✅ Migrated Wave 1 |
 | `orgDomainMapping.js` | GET | `/api/org-domain-mapping` | Org mapping view | `OrgDomainMappingController` | `Get(...)` | P1 | ✅ Migrated Wave 1 |
-| `kpiConfig.js` | GET | `/api/kpi-config/registry` | KPI registry | `KpiConfigController` | `GetRegistry()` | P1 | Read-only |
-| `kpiConfig.js` | POST | `/api/kpi-config/:id/validate` | Validate KPI | `KpiConfigController` | `Validate(int id)` | P2 | Validation only |
-| `kpiConfig.js` | GET | `/api/kpi-config/:id/summary` | KPI summary | `KpiConfigController` | `GetSummary(int id)` | P1 | Read-only |
+| `kpiConfig.js` | GET | `/api/kpi-config/registry` | KPI registry | `KpiConfigController` | `GetRegistry()` | P1 | 🔵 Migrated Wave 2 |
+| `kpiConfig.js` | POST | `/api/kpi-config/:id/validate` | Validate KPI | `KpiConfigController` | `Validate(int id)` | P2 | 🔵 Migrated Wave 2 |
+| `kpiConfig.js` | GET | `/api/kpi-config/:id/summary` | KPI summary | `KpiConfigController` | `GetSummary(int id)` | P1 | 🔵 Migrated Wave 2 |
 
 ## Auth Routes
 

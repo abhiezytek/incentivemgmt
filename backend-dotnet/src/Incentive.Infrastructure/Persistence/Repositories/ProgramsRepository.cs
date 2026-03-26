@@ -9,7 +9,7 @@ namespace Incentive.Infrastructure.Persistence.Repositories;
 
 /// <summary>
 /// Dapper implementation of IProgramsRepository.
-/// Ported from server/src/routes/programs.js (/:id/preview endpoint).
+/// Ported from server/src/routes/programs.js.
 /// </summary>
 public class ProgramsRepository : IProgramsRepository
 {
@@ -94,5 +94,67 @@ public class ProgramsRepository : IProgramsRepository
         result["resultStats"] = resultStats;
 
         return result;
+    }
+
+    public async Task<object?> GetProgramSummaryAsync(int programId)
+    {
+        var program = await _queryHelper.FindByIdAsync("incentive_programs", programId);
+        if (program == null)
+            return null;
+
+        using var conn = await _db.CreateConnectionAsync();
+
+        // Extract channel_id from program
+        int? channelId = null;
+        if (program is IDictionary<string, object> dict && dict.TryGetValue("channel_id", out var chId))
+            channelId = chId as int?;
+
+        var kpiCount = await conn.QueryFirstOrDefaultAsync<int>(
+            ProgramsSql.KpiCountByProgram, new { programId });
+
+        var payoutRuleCount = await conn.QueryFirstOrDefaultAsync<int>(
+            ProgramsSql.PayoutRuleCountByProgram, new { programId });
+
+        int agentCount = 0;
+        if (channelId != null)
+        {
+            agentCount = await conn.QueryFirstOrDefaultAsync<int>(
+                ProgramsSql.AgentCountByChannel, new { channelId });
+        }
+
+        var resultCount = await conn.QueryFirstOrDefaultAsync<int>(
+            ProgramsSql.ResultCountByProgram, new { programId });
+
+        return new
+        {
+            program,
+            kpi_count = kpiCount,
+            payout_rule_count = payoutRuleCount,
+            agent_count = agentCount,
+            has_results = resultCount > 0,
+        };
+    }
+
+    public async Task<IEnumerable<int>> GetOverlappingActiveProgramsAsync(
+        int programId, int channelId, DateTime startDate, DateTime endDate)
+    {
+        using var conn = await _db.CreateConnectionAsync();
+        return await conn.QueryAsync<int>(
+            ProgramsSql.OverlappingActivePrograms,
+            new { programId, channelId, startDate, endDate });
+    }
+
+    public async Task<int> GetKpiCountAsync(int programId)
+    {
+        using var conn = await _db.CreateConnectionAsync();
+        return await conn.QueryFirstOrDefaultAsync<int>(
+            ProgramsSql.KpiCountByProgram, new { programId });
+    }
+
+    public async Task<int> GetPayoutRuleCountAsync(int programId)
+    {
+        using var conn = await _db.CreateConnectionAsync();
+        return await conn.QueryFirstOrDefaultAsync<int>(
+            ProgramsSql.PayoutRuleCountByProgram, new { programId });
     }
 }
