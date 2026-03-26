@@ -1,5 +1,6 @@
 using IncentiveApi.Data;
 using IncentiveApi.Middleware;
+using IncentiveApi.Services.Engine;
 using IncentiveApi.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddSingleton<QueryHelper>();
 builder.Services.AddSingleton<BulkInsertUtil>();
+builder.Services.AddScoped<CalculateIncentiveService>();
+builder.Services.AddScoped<InsuranceCalcEngineService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
