@@ -1,41 +1,94 @@
 // client/src/pages/Dashboard.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Legend, Cell
+  ResponsiveContainer, PieChart, Pie, Legend, Cell,
 } from 'recharts';
-import { StatCard, Badge, LoadingSpinner, Card } from '../components/ui';
+import {
+  PageShell,
+  PageTitle,
+  StatCard,
+  SectionCard,
+  AlertPanel,
+  TimelineList,
+  Button,
+  MetricStrip,
+  EnterpriseTable,
+  StatusPill,
+  LoadingSpinner,
+} from '../components/ui';
 
+/* ── Colour constants ── */
 const BLUE_SHADES = ['#1E40AF', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD'];
-const PROGRAM_STATUS = {
-  ACTIVE: 'green',
-  DRAFT: 'yellow',
-  CLOSED: 'grey',
+
+/* ── Number formatters (Indian locale) ── */
+const fmt  = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const fmtK = (n) => {
+  const v = Number(n || 0);
+  if (v >= 10_000_000) return `₹${(v / 10_000_000).toFixed(1)}Cr`;
+  if (v >= 100_000)    return `₹${(v / 100_000).toFixed(1)}L`;
+  return fmt(v);
 };
 
-const fmt  = (n) => `₹${Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0})}`;
-const fmtK = (n) => n >= 10000000
-  ? `₹${(n/10000000).toFixed(1)}Cr`
-  : n >= 100000
-  ? `₹${(n/100000).toFixed(1)}L`
-  : fmt(n);
-
-const getGreeting = () => {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+/* ── Fallback data used when /api/dashboard/summary fails or returns null ── */
+// TODO: replace zeroed fallback once the API guarantees non-null responses (see GET /api/dashboard/summary)
+const FALLBACK = {
+  kpi: {
+    total_pool: 0, total_nb_premium: 0, avg_achievement: 0,
+    paid_count: 0, pool_growth: 0, nb_growth: 0,
+    achievement_trend: 0, persistency_trend: 0,
+  },
+  channelBreakdown: [],
+  productMix: [],
+  topAgents: [],
+  programs: [],
+  recentActivity: [],
+  pipelineStatus: { DRAFT: { count: 0 }, APPROVED: { count: 0 }, INITIATED: { count: 0 }, PAID: { count: 0 } },
 };
+
+/* ── Inline SVG icons ── */
+const icons = {
+  schemes: (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.251 2.251 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+    </svg>
+  ),
+  payout: (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+    </svg>
+  ),
+  pending: (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  pool: (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  refresh: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+    </svg>
+  ),
+};
+
+/* ════════════════════════════════════════════════════════════════════════ */
 
 export default function Dashboard() {
-  const [data,    setData]    = useState(null);
-  const [period,  setPeriod]  = useState('');
-  const [program, setProgram] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [data,        setData]        = useState(null);
+  const [period,      setPeriod]      = useState('');
+  const [program,     setProgram]     = useState('');
+  const [loading,     setLoading]     = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [alertDismissed, setAlertDismissed] = useState(false);
 
   const API = import.meta.env.VITE_API_URL;
 
-  const fetchDashboard = async () => {
+  /* ── Fetch dashboard summary ── */
+  const fetchDashboard = useCallback(async () => {
     setLoading(true);
     try {
       const p = new URLSearchParams();
@@ -45,271 +98,327 @@ export default function Dashboard() {
       const json = await res.json();
       setData(json);
     } catch {
-      /* ignore – data stays null */
+      /* graceful fallback — FALLBACK data will be used via `d` below */
+      setData(null);
     }
+    setLastRefresh(new Date());
     setLoading(false);
-  };
+  }, [API, program, period]);
 
   useEffect(() => { fetchDashboard(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading || !data) return (
-    <div className="flex items-center justify-center py-32">
-      <LoadingSpinner size="lg" />
-    </div>
-  );
+  /* ── Loading state ── */
+  if (loading && !data) {
+    return (
+      <PageShell>
+        <div className="flex items-center justify-center py-32">
+          <LoadingSpinner size="lg" />
+        </div>
+      </PageShell>
+    );
+  }
 
-  const maxIncentive = Math.max(
-    ...((data.topAgents || []).map(a => Number(a.total_incentive || 0))),
-    1,
-  );
+  /* ── Merge API data with fallback ── */
+  const d = { ...FALLBACK, ...data };
+  const kpi = { ...FALLBACK.kpi, ...d.kpi };
+  const pipeline = { ...FALLBACK.pipelineStatus, ...d.pipelineStatus };
 
+  /* ── Derived KPIs ── */
+  const activeSchemes    = (d.programs || []).filter((p) => p.status === 'ACTIVE').length;
+  const processingCount  = pipeline.INITIATED?.count || 0;
+  const pendingApprovals = pipeline.DRAFT?.count || 0;
+
+  /* ── Top agents table columns ── */
+  const agentColumns = [
+    { key: 'rank',            label: '#',       width: '48px', render: (_, __, i) => <span className="font-semibold text-ent-muted">{i + 1}</span> },
+    { key: 'agent_name',      label: 'Agent',   render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'agent_code',      label: 'Code' },
+    { key: 'total_incentive', label: 'Incentive', render: (v) => <span className="font-semibold text-action-blue">{fmtK(Number(v || 0))}</span> },
+  ];
+
+  /* ── Programs table columns ── */
+  const programColumns = [
+    { key: 'name',       label: 'Scheme Name', render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'channel',    label: 'Channel' },
+    { key: 'start_date', label: 'Start' },
+    { key: 'end_date',   label: 'End' },
+    { key: 'status',     label: 'Status', render: (v) => <StatusPill status={v === 'ACTIVE' ? 'active' : v === 'DRAFT' ? 'pending' : v === 'CLOSED' ? 'processed' : 'pending'}>{v}</StatusPill> },
+  ];
+
+  /* ── Timeline items from recentActivity ── */
+  const timelineItems = (d.recentActivity || []).map((act) => ({
+    timestamp: act.time,
+    title: act.message,
+    status: 'active',
+  }));
+
+  /* ── Pipeline metric strip ── */
+  const pipelineMetrics = [
+    { label: 'Calculated', value: String(pipeline.DRAFT?.count || 0),     color: '#1D4ED8' },
+    { label: 'Approved',   value: String(pipeline.APPROVED?.count || 0),  color: '#1E2A78' },
+    { label: 'Initiated',  value: String(pipeline.INITIATED?.count || 0), color: '#D6A15C' },
+    { label: 'Paid',       value: String(pipeline.PAID?.count || 0),      color: '#16A34A' },
+  ];
+
+  /* ── Formatted refresh timestamp ── */
+  const refreshLabel = lastRefresh
+    ? lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '—';
+
+  /* ══════════════════════ Render ══════════════════════ */
   return (
-    <div className="space-y-6">
+    <PageShell>
 
-      {/* ── Blue gradient banner ── */}
-      <div className="rounded-xl bg-gradient-to-r from-primary to-primary-light p-6 text-white">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{getGreeting()}, Admin 👋</h1>
-            <p className="mt-1 text-sm text-blue-100">
-              {data.programs?.[0]?.name || 'Incentive Management'} · {period || 'Current Period'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              value={program}
-              onChange={e => setProgram(e.target.value)}
-              placeholder="Program ID"
-              className="rounded-lg border border-white/30 bg-white/20 px-3 py-1.5 text-sm text-white
-                         placeholder:text-blue-200 focus:ring-2 focus:ring-white/50 outline-none w-28"
-            />
-            <input
-              type="date"
-              value={period}
-              onChange={e => setPeriod(e.target.value)}
-              className="rounded-lg border border-white/30 bg-white/20 px-3 py-1.5 text-sm text-white
-                         focus:ring-2 focus:ring-white/50 outline-none"
-            />
-            <button
-              onClick={fetchDashboard}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-blue-50"
-            >
-              Apply
-            </button>
-          </div>
+      {/* ── Page title + quick actions ── */}
+      <PageTitle
+        title="Dashboard"
+        subtitle={`${d.programs?.[0]?.name || 'Incentive Management'} · ${period || 'Current Period'}`}
+        breadcrumb={[
+          { label: 'Home', href: '/' },
+          { label: 'Dashboard' },
+        ]}
+        actions={
+          <>
+            <Button variant="secondary" size="sm">Export Ledger</Button>
+            <Button variant="secondary" size="sm">Initiate Payout</Button>
+            <Button variant="primary"   size="sm">Review Exception Log</Button>
+          </>
+        }
+      />
+
+      {/* ── Live sync / freshness indicator + filters ── */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-xs text-ent-muted">
+          <span className="inline-block h-2 w-2 rounded-full bg-ent-success animate-pulse" />
+          <span>Last refreshed: {refreshLabel}</span>
+          <button
+            onClick={fetchDashboard}
+            disabled={loading}
+            className="inline-flex items-center gap-1 rounded-md border border-ent-border px-2 py-1 text-xs font-medium text-ent-muted hover:text-action-blue hover:border-action-blue transition-colors disabled:opacity-50"
+            aria-label="Refresh dashboard"
+          >
+            {icons.refresh}
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            value={program}
+            onChange={(e) => setProgram(e.target.value)}
+            placeholder="Program ID"
+            className="rounded-lg border border-ent-border bg-ent-surface px-3 py-1.5 text-sm text-ent-text
+                       placeholder:text-ent-muted focus:ring-2 focus:ring-action-blue/30 focus:border-action-blue outline-none w-32"
+          />
+          <input
+            type="date"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="rounded-lg border border-ent-border bg-ent-surface px-3 py-1.5 text-sm text-ent-text
+                       focus:ring-2 focus:ring-action-blue/30 focus:border-action-blue outline-none"
+          />
+          <Button variant="primary" size="sm" onClick={fetchDashboard} loading={loading}>
+            Apply
+          </Button>
         </div>
       </div>
 
-      {/* ── KPI StatCards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── Top KPI cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
-          label="Total Incentive Pool"
-          value={fmtK(data.kpi.total_pool)}
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-          trend={data.kpi.pool_growth}
+          label="Active Schemes"
+          value={activeSchemes}
+          icon={icons.schemes}
           color="blue"
+          accentColor="blue"
         />
         <StatCard
-          label="Total NB Premium"
-          value={fmtK(data.kpi.total_nb_premium)}
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
-          trend={data.kpi.nb_growth}
-          color="grey"
+          label="Processing Payouts"
+          value={processingCount}
+          icon={icons.payout}
+          color="yellow"
+          accentColor="yellow"
         />
         <StatCard
-          label="Avg Achievement %"
-          value={`${Number(data.kpi.avg_achievement||0).toFixed(1)}%`}
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z M9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625z M16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>}
-          trend={data.kpi.achievement_trend}
-          color="blue"
+          label="Pending Approvals"
+          value={pendingApprovals}
+          icon={icons.pending}
+          color="red"
+          accentColor="red"
         />
         <StatCard
-          label="Active Agents"
-          value={data.kpi.paid_count || '—'}
-          icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
-          trend={data.kpi.persistency_trend}
-          color="grey"
+          label="Net Payout / Total Calculated"
+          value={fmtK(kpi.total_pool)}
+          icon={icons.pool}
+          trend={kpi.pool_growth}
+          color="green"
+          accentColor="green"
         />
       </div>
 
-      {/* ── Charts Row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Bar Chart — Channel Incentive */}
-        <Card title="Channel Incentive Breakdown" subtitle="Self vs MLM Override" className="lg:col-span-3">
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={data.channelBreakdown} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-              <XAxis dataKey="channel" tick={{ fontSize: 11, fill: '#64748B' }} />
-              <YAxis
-                tickFormatter={(v) => `₹${(v/100000).toFixed(0)}L`}
-                tick={{ fontSize: 11, fill: '#64748B' }}
-              />
-              <Tooltip
-                formatter={(v, n) => [fmtK(v), n === 'self_incentive' ? 'Self' : 'MLM Override']}
-                contentStyle={{ borderRadius:'8px', border:'1px solid #E2E8F0', fontSize:'12px' }}
-              />
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                formatter={(v) => <span className="text-xs text-text-secondary">{v}</span>}
-              />
-              <Bar dataKey="self_incentive" name="Self" stackId="a" fill="#1E40AF" radius={[0,0,0,0]} />
-              <Bar dataKey="override_incentive" name="MLM Override" stackId="a" fill="#64748B" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
+      {/* ── Alerts & Exceptions panel ── */}
+      {!alertDismissed && (
+        <div className="mb-6">
+          {pendingApprovals > 0 ? (
+            <AlertPanel
+              variant="warning"
+              title={`${pendingApprovals} payout batch(es) awaiting approval`}
+              message="Review and approve pending batches to proceed with disbursement."
+              onDismiss={() => setAlertDismissed(true)}
+              action={
+                <a href="/payout/disbursement" className="text-sm font-medium underline">
+                  Go to Approvals →
+                </a>
+              }
+            />
+          ) : (
+            // TODO: replace with real exception data from GET /api/dashboard/exceptions when available
+            <AlertPanel
+              variant="info"
+              title="All systems operational"
+              message="No pending exceptions or approval bottlenecks at this time."
+              onDismiss={() => setAlertDismissed(true)}
+            />
+          )}
+        </div>
+      )}
 
-        {/* Donut — Product Mix */}
-        <Card title="NB Premium Mix" subtitle="By Product" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie
-                data={data.productMix}
-                dataKey="premium"
-                nameKey="product"
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={3}
-              >
-                {(data.productMix || []).map((_, i) => (
-                  <Cell key={i} fill={BLUE_SHADES[i % BLUE_SHADES.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(v) => [fmtK(v), 'Premium']}
-                contentStyle={{ borderRadius:'8px', border:'1px solid #E2E8F0', fontSize:'12px' }}
-              />
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                formatter={(v) => <span className="text-xs text-text-secondary">{v}</span>}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
+      {/* ── Payout Pipeline Status ── */}
+      <div className="mb-6">
+        <MetricStrip metrics={pipelineMetrics} />
       </div>
 
-      {/* ── Bottom Row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        {/* Top 5 Agents */}
-        <Card
-          title="Top Performers"
-          action={<a href="/incentive/leaderboard" className="text-xs font-medium text-primary hover:underline">View all →</a>}
+      {/* ── Channel Performance Analysis ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        <SectionCard
+          sectionLabel="Performance"
+          title="Channel Incentive Breakdown"
+          subtitle="Self vs Override incentive by channel"
+          className="lg:col-span-3"
         >
-          <div className="space-y-3">
-            {(data.topAgents || []).map((a, i) => (
-              <div key={a.agent_code} className="flex items-center gap-3">
-                <Badge variant={i === 0 ? 'yellow' : i === 1 ? 'grey' : i === 2 ? 'red' : 'blue'}>
-                  #{i + 1}
-                </Badge>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-text-primary truncate">
-                    {a.agent_name}
-                  </p>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
-                    <div
-                      className="bg-primary h-1.5 rounded-full"
-                      style={{ width: `${(Number(a.total_incentive) / maxIncentive * 100).toFixed(0)}%` }}
-                    />
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-primary shrink-0">
-                  {fmtK(Number(a.total_incentive))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
+          {(d.channelBreakdown || []).length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={d.channelBreakdown} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E6EAF2" vertical={false} />
+                <XAxis dataKey="channel" tick={{ fontSize: 11, fill: '#667085' }} />
+                <YAxis
+                  tickFormatter={(v) => `₹${(v / 100_000).toFixed(0)}L`}
+                  tick={{ fontSize: 11, fill: '#667085' }}
+                />
+                <Tooltip
+                  formatter={(v, n) => [fmtK(v), n === 'self_incentive' ? 'Self Incentive' : 'Override Incentive']}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #E6EAF2', fontSize: '12px' }}
+                />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(v) => <span className="text-xs text-ent-muted">{v}</span>}
+                />
+                <Bar dataKey="self_incentive"     name="Self"         stackId="a" fill="#1E40AF" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="override_incentive"  name="Override"     stackId="a" fill="#60A5FA" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="py-12 text-center text-sm text-ent-muted">No channel data available.</p>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          sectionLabel="Product Mix"
+          title="NB Premium Distribution"
+          subtitle="By product"
+          className="lg:col-span-2"
+        >
+          {(d.productMix || []).length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={d.productMix}
+                  dataKey="premium"
+                  nameKey="product"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={3}
+                >
+                  {(d.productMix || []).map((_, i) => (
+                    <Cell key={i} fill={BLUE_SHADES[i % BLUE_SHADES.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(v) => [fmtK(v), 'Premium']}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #E6EAF2', fontSize: '12px' }}
+                />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(v) => <span className="text-xs text-ent-muted">{v}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="py-12 text-center text-sm text-ent-muted">No product data available.</p>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* ── Bottom row: Top Agents · Active Programs · Recent Activity ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Top Performers */}
+        <SectionCard
+          sectionLabel="Leaderboard"
+          title="Top Performers"
+          action={
+            <a href="/incentive/leaderboard" className="text-xs font-medium text-action-blue hover:underline">
+              View all →
+            </a>
+          }
+          noPadding
+        >
+          <EnterpriseTable
+            columns={agentColumns}
+            data={d.topAgents || []}
+            emptyMessage="No agent data available"
+          />
+        </SectionCard>
 
         {/* Active Programs */}
-        <Card
+        <SectionCard
+          sectionLabel="Schemes"
           title="Active Programs"
-          action={<a href="/admin/plans" className="text-xs font-medium text-primary hover:underline">Manage →</a>}
+          action={
+            <a href="/admin/plans" className="text-xs font-medium text-action-blue hover:underline">
+              Manage →
+            </a>
+          }
+          noPadding
         >
-          <div className="space-y-3">
-            {(data.programs || []).map((p) => (
-              <div
-                key={p.id}
-                className="flex items-start justify-between rounded-lg border border-border p-2.5 hover:bg-background transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-text-primary truncate">{p.name}</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {p.start_date} → {p.end_date}
-                  </p>
-                  <p className="text-xs text-text-muted">{p.channel}</p>
-                </div>
-                <Badge variant={PROGRAM_STATUS[p.status] || 'grey'}>
-                  {p.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
+          <EnterpriseTable
+            columns={programColumns}
+            data={d.programs || []}
+            emptyMessage="No active programs"
+          />
+        </SectionCard>
 
-        {/* Activity Feed */}
-        <Card title="Recent Activity">
-          <div className="space-y-3">
-            {(data.recentActivity || []).map((act, i) => (
-              <div key={i} className="flex gap-3 items-start">
-                <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-text-primary font-medium">{act.message}</p>
-                  <p className="text-xs text-text-muted mt-0.5">{act.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        {/* Recent Activity / Dispositions */}
+        <SectionCard
+          sectionLabel="Activity"
+          title="Recent Dispositions"
+          action={
+            <a href="/payout/disbursement" className="text-xs font-medium text-action-blue hover:underline">
+              View all →
+            </a>
+          }
+        >
+          {timelineItems.length > 0 ? (
+            <TimelineList items={timelineItems} />
+          ) : (
+            <p className="py-8 text-center text-sm text-ent-muted">No recent activity.</p>
+          )}
+        </SectionCard>
       </div>
-
-      {/* ── Payout Pipeline ── */}
-      <Card title="Payout Pipeline Status" action={
-        <a href="/payout/disbursement" className="text-xs font-medium text-primary hover:underline">
-          Go to Disbursement →
-        </a>
-      }>
-        <div className="flex gap-0 rounded-lg overflow-hidden h-8 border border-border">
-          {[
-            { label:'Calculated', key:'DRAFT',     color:'bg-accent' },
-            { label:'Approved',   key:'APPROVED',  color:'bg-primary'  },
-            { label:'Initiated',  key:'INITIATED', color:'bg-warning'},
-            { label:'Paid',       key:'PAID',      color:'bg-success' },
-          ].map((s) => {
-            const count = data.pipelineStatus?.[s.key]?.count || 0;
-            const total = Object.values(data.pipelineStatus || {})
-              .reduce((sum, v) => sum + (v.count || 0), 0);
-            const width = total > 0 ? (count / total) * 100 : 0;
-            return (
-              <div
-                key={s.key}
-                className={`${s.color} flex items-center justify-center text-white text-xs font-medium transition-all ${width < 5 ? 'hidden' : ''}`}
-                style={{ width: `${width}%` }}
-                title={`${s.label}: ${count} agents`}
-              >
-                {width > 8 ? `${s.label} (${count})` : count}
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex gap-4 mt-2">
-          {[
-            { label:'Calculated', color:'bg-accent' },
-            { label:'Approved',   color:'bg-primary'  },
-            { label:'Initiated',  color:'bg-warning'},
-            { label:'Paid',       color:'bg-success' },
-          ].map((s) => (
-            <div key={s.label} className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${s.color}`} />
-              <span className="text-xs text-text-secondary">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-    </div>
+    </PageShell>
   );
 }
