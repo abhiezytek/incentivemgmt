@@ -1,4 +1,6 @@
 using Incentive.Application.Abstractions.Repositories;
+using Incentive.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
@@ -6,11 +8,10 @@ namespace Incentive.Api.Controllers;
 /// <summary>
 /// Organizational domain mapping endpoints.
 /// Ported from server/src/routes/orgDomainMapping.js.
-/// Auth: userAuth (placeholder — currently passes through in Node.js).
-/// NOTE: Node.js userAuth middleware is a placeholder that passes all requests through.
-///       We match that behavior here — no actual auth enforcement.
+/// Auth: Admin/Ops — organizational config.
 /// </summary>
 [ApiController]
+[Authorize(Roles = Roles.AdminOrOps)]
 public class OrgDomainMappingController : ControllerBase
 {
     private readonly IOrgDomainMappingRepository _orgRepo;

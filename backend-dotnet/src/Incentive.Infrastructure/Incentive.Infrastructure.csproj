@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Incentive.Domain\Incentive.Domain.csproj" />
     <ProjectReference Include="..\Incentive.Application\Incentive.Application.csproj" />
   </ItemGroup>
@@ -10,10 +14,12 @@
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.7.0" />
     <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="Quartz" Version="3.14.0" />
     <PackageReference Include="Quartz.Extensions.Hosting" Version="3.14.0" />
     <PackageReference Include="SSH.NET" Version="2024.2.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,6 +1,7 @@
 using Incentive.Application.Abstractions.Repositories;
 using Incentive.Domain.Constants;
 using Incentive.Domain.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
@@ -8,11 +9,12 @@ namespace Incentive.Api.Controllers;
 /// <summary>
 /// Exception Log endpoints.
 /// Ported from server/src/routes/exceptionLog.js (3 endpoints).
-/// Auth: userAuth (placeholder — currently passes through in Node.js).
+/// Auth: Admin/Ops — operational exception management.
 /// All operations target the additive operational_exceptions table only.
 /// Exception resolution does NOT affect incentive result status.
 /// </summary>
 [ApiController]
+[Authorize(Roles = Roles.AdminOrOps)]
 public class ExceptionLogController : ControllerBase
 {
     private readonly IExceptionLogRepository _exceptionRepo;

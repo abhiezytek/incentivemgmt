@@ -1,4 +1,5 @@
 using Incentive.Application.Abstractions.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
@@ -6,12 +7,10 @@ namespace Incentive.Api.Controllers;
 /// <summary>
 /// Notification endpoints.
 /// Ported from server/src/routes/notifications.js.
-/// Auth: userAuth (placeholder — currently passes through in Node.js).
-/// NOTE: Node.js userAuth middleware is a placeholder that passes all requests through.
-///       We match that behavior here — no actual auth enforcement.
-///       Includes both read (GET) and write (POST) endpoints per the Node.js source.
+/// Auth: All authenticated users can view and manage their notifications.
 /// </summary>
 [ApiController]
+[Authorize]
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationsRepository _notificationsRepo;

@@ -1,6 +1,8 @@
 using Incentive.Application.Abstractions.Repositories;
+using Incentive.Application.Interfaces;
 using Incentive.Infrastructure.Data;
 using Incentive.Infrastructure.Persistence.Repositories;
+using Incentive.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,6 +32,11 @@ public static class InfrastructureServiceCollectionExtensions
         // Wave 3 repositories
         services.AddScoped<IReviewAdjustmentsRepository, ReviewAdjustmentsRepository>();
         services.AddScoped<IExceptionLogRepository, ExceptionLogRepository>();
+
+        // Auth / Security
+        services.AddScoped<IUserAuthRepository, UserAuthRepository>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // TODO: Register BulkInsertUtil, CsvParserUtil, DataMaskUtil when implemented
         // TODO: Register Quartz background jobs when implemented

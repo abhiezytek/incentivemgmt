@@ -2,17 +2,20 @@ using Incentive.Application.Abstractions.Repositories;
 using Incentive.Domain.Constants;
 using Incentive.Domain.Exceptions;
 using Incentive.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
 
 /// <summary>
 /// Programs controller — full CRUD for incentive programs.
-/// Auth: NONE (matches Node.js — programs routes have no auth middleware).
+/// Auth: Read endpoints open to all authenticated users.
+///       Write endpoints (create/update/delete/status) restricted to ConfigManagers.
 /// Wave 1: GET list, GET by ID, GET preview.
 /// Wave 2: POST create, PUT update, PATCH status, DELETE, GET summary.
 /// </summary>
 [ApiController]
+[Authorize]
 public class ProgramsController : ControllerBase
 {
     private static readonly string[] ValidStatuses = ["DRAFT", "ACTIVE", "CLOSED"];

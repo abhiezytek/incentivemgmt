@@ -1,4 +1,5 @@
 using Incentive.Application.Abstractions.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
@@ -6,9 +7,10 @@ namespace Incentive.Api.Controllers;
 /// <summary>
 /// Dashboard endpoints.
 /// Ported from server/src/routes/executiveSummary.js.
-/// Auth: NONE (matches Node.js — no auth middleware on this route).
+/// Auth: All authenticated users can view dashboards.
 /// </summary>
 [ApiController]
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardRepository _dashboardRepo;

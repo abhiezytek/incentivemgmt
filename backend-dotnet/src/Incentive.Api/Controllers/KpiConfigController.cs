@@ -1,15 +1,17 @@
 using Incentive.Application.Abstractions.Repositories;
+using Incentive.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
 
 /// <summary>
 /// KPI Configuration controller — read-only config endpoints + validation.
-/// Auth: userAuth (matches Node.js — kpi-config routes use userAuth middleware).
-/// NOTE: userAuth is currently a placeholder in Node. We match that behavior.
+/// Auth: ConfigManagers (Admin, Ops, Manager) for config management.
 /// Ported from server/src/routes/kpiConfig.js.
 /// </summary>
 [ApiController]
+[Authorize(Roles = Roles.ConfigManagers)]
 public class KpiConfigController : ControllerBase
 {
     private readonly IKpiConfigRepository _kpiConfigRepo;

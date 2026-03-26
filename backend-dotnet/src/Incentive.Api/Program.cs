@@ -15,6 +15,9 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// JWT Authentication
+builder.Services.AddJwtAuth(builder.Configuration);
+
 // CORS — open (matches Node.js cors() with no options)
 builder.Services.AddCors(options =>
 {
@@ -23,6 +26,9 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod()
         .AllowAnyHeader());
 });
+
+// HttpContextAccessor for CurrentUserService
+builder.Services.AddHttpContextAccessor();
 
 // Register all layered services (Infrastructure + Application)
 builder.Services.AddAllServices(builder.Configuration);
@@ -42,9 +48,10 @@ app.UseSwaggerUI(c =>
     c.DocumentTitle = "Incentive System API Docs";
 });
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Health endpoint (matches Node.js GET /api/health)
+// Health endpoint (matches Node.js GET /api/health) — anonymous
 app.MapGet("/api/health", () => new { status = "ok" });
 
 app.MapControllers();

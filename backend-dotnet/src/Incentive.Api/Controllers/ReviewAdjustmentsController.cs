@@ -1,6 +1,7 @@
 using Incentive.Application.Abstractions.Repositories;
 using Incentive.Domain.Constants;
 using Incentive.Domain.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
@@ -8,7 +9,7 @@ namespace Incentive.Api.Controllers;
 /// <summary>
 /// Review &amp; Adjustments workflow endpoints.
 /// Ported from server/src/routes/reviewAdjustments.js (7 endpoints).
-/// Auth: userAuth (placeholder — currently passes through in Node.js).
+/// Auth: WorkflowActors (Admin, Ops, Finance, Manager).
 ///
 /// IMPORTANT: All adjustment operations are ADDITIVE.
 /// They insert into incentive_adjustments / incentive_review_actions
@@ -16,6 +17,7 @@ namespace Incentive.Api.Controllers;
 /// The only mutation to ins_incentive_results is batch-approve which changes status only.
 /// </summary>
 [ApiController]
+[Authorize(Roles = Roles.WorkflowActors)]
 public class ReviewAdjustmentsController : ControllerBase
 {
     private readonly IReviewAdjustmentsRepository _reviewRepo;
