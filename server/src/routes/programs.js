@@ -633,4 +633,101 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/programs/{id}/preview:
+ *   get:
+ *     tags: [Programs]
+ *     summary: Scheme preview (read-only composite view)
+ *     description: >
+ *       Returns a complete preview of a program/scheme including its KPI
+ *       definitions, payout rules with slabs, qualifying rules, agent counts,
+ *       and incentive result statistics. Used by the Scheme Management wizard
+ *       Live Preview step and the scheme detail drawer.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Complete scheme preview
+ *       404:
+ *         description: Program not found
+ */
+router.get('/:id/preview', async (req, res) => {
+  try {
+    const program = await findById(TABLE, req.params.id);
+    if (!program) return res.status(404).json(apiError('VAL_006', { field: 'program' }));
+
+    // Channel info
+    const channelRows = await query(
+      `SELECT name, code FROM channels WHERE id = $1`,
+      [program.channel_id]
+    );
+
+    // KPIs
+    const kpis = await query(
+      `SELECT kd.*, json_agg(km.* ORDER BY km.sort_order) AS milestones
+       FROM kpi_definitions kd
+       LEFT JOIN kpi_milestones km ON km.kpi_id = kd.id
+       WHERE kd.program_id = $1
+       GROUP BY kd.id
+       ORDER BY kd.sort_order`,
+      [program.id]
+    );
+
+    // Payout rules
+    const payoutRules = await query(
+      `SELECT pr.*, json_agg(ps.* ORDER BY ps.sort_order) AS slabs
+       FROM payout_rules pr
+       LEFT JOIN payout_slabs ps ON ps.payout_rule_id = pr.id
+       WHERE pr.program_id = $1
+       GROUP BY pr.id`,
+      [program.id]
+    );
+
+    // Qualifying rules
+    const qualifyingRules = await query(
+      `SELECT pqr.*, pr.rule_name, kd.kpi_name
+       FROM payout_qualifying_rules pqr
+       JOIN payout_rules pr ON pr.id = pqr.payout_rule_id
+       LEFT JOIN kpi_definitions kd ON kd.id = pqr.kpi_id
+       WHERE pr.program_id = $1`,
+      [program.id]
+    );
+
+    // Agent count
+    const agentCount = await query(
+      `SELECT COUNT(*)::int AS cnt FROM ins_agents
+       WHERE channel_id = $1 AND status = 'ACTIVE'`,
+      [program.channel_id]
+    );
+
+    // Result stats (if calculations have run)
+    const resultStats = await query(
+      `SELECT status, COUNT(*)::int AS count, COALESCE(SUM(total_incentive),0) AS total
+       FROM ins_incentive_results WHERE program_id = $1
+       GROUP BY status`,
+      [program.id]
+    );
+    const stats = {};
+    for (const r of resultStats) {
+      stats[r.status] = { count: r.count, total: Number(r.total) };
+    }
+
+    res.json({
+      ...program,
+      channel: channelRows[0] || null,
+      kpis,
+      payoutRules,
+      qualifyingRules,
+      agentCount: agentCount[0]?.cnt || 0,
+      resultStats: stats,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

@@ -28,6 +28,13 @@ import systemTokenRouter  from './src/routes/auth/systemToken.js';
 import systemAuth         from './src/middleware/systemAuth.js';
 import userAuth           from './src/middleware/userAuth.js';
 import maskResponse       from './src/middleware/maskResponse.js';
+import reviewAdjustmentsRouter from './src/routes/reviewAdjustments.js';
+import exceptionLogRouter      from './src/routes/exceptionLog.js';
+import executiveSummaryRouter  from './src/routes/executiveSummary.js';
+import systemStatusRouter      from './src/routes/systemStatus.js';
+import notificationsRouter     from './src/routes/notifications.js';
+import orgDomainMappingRouter  from './src/routes/orgDomainMapping.js';
+import kpiConfigRouter         from './src/routes/kpiConfig.js';
 import { startSftpPollers } from './src/jobs/sftpPoller.js';
 import { startHierarchySync } from './src/jobs/hierarchySync.js';
 
@@ -78,6 +85,13 @@ app.use('/api/v1/integration/penta',   systemAuth, pentaRouter);
 app.use('/api/v1/integration/lifeasia', systemAuth, lifeAsiaRouter);
 app.use('/api/v1/integration/export',  userAuth,   exportRouter);
 app.use('/api/v1/integration',         userAuth,   integrationStatus);
+app.use('/api/v1/review-adjustments',  userAuth,   reviewAdjustmentsRouter);
+app.use('/api/v1/exception-log',       userAuth,   exceptionLogRouter);
+app.use('/api/v1/dashboard',           executiveSummaryRouter);
+app.use('/api/v1/system-status',       userAuth,   systemStatusRouter);
+app.use('/api/v1/notifications',       userAuth,   notificationsRouter);
+app.use('/api/v1/org-domain-mapping',  userAuth,   orgDomainMappingRouter);
+app.use('/api/v1/kpi-config',          userAuth,   kpiConfigRouter);
 
 // --- Unversioned aliases (default to v1 for backward compatibility) ---
 app.use('/api/upload',              uploadRouter);
@@ -101,6 +115,13 @@ app.use('/api/integration/penta',   systemAuth, pentaRouter);
 app.use('/api/integration/lifeasia', systemAuth, lifeAsiaRouter);
 app.use('/api/integration/export',  userAuth,   exportRouter);
 app.use('/api/integration',         userAuth,   integrationStatus);
+app.use('/api/review-adjustments',  userAuth,   reviewAdjustmentsRouter);
+app.use('/api/exception-log',       userAuth,   exceptionLogRouter);
+app.use('/api/dashboard',           executiveSummaryRouter);
+app.use('/api/system-status',       userAuth,   systemStatusRouter);
+app.use('/api/notifications',       userAuth,   notificationsRouter);
+app.use('/api/org-domain-mapping',  userAuth,   orgDomainMappingRouter);
+app.use('/api/kpi-config',          userAuth,   kpiConfigRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
