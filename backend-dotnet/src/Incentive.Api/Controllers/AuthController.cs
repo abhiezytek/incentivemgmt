@@ -47,18 +47,18 @@ public class AuthController : ControllerBase
         var user = await _userAuthRepo.GetByEmailAsync(email);
         if (user == null)
         {
-            return Unauthorized(new { error = "AUTH_001", message = "Invalid email or password" });
+            return Unauthorized(new { error = "AUTH_010", message = "Invalid email or password" });
         }
 
         if (!user.IsActive)
         {
-            return Unauthorized(new { error = "AUTH_002", message = "Account is deactivated" });
+            return Unauthorized(new { error = "AUTH_011", message = "Account is deactivated" });
         }
 
         // Verify password using bcrypt (matching Node.js bcryptjs behavior)
         if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
         {
-            return Unauthorized(new { error = "AUTH_001", message = "Invalid email or password" });
+            return Unauthorized(new { error = "AUTH_010", message = "Invalid email or password" });
         }
 
         var token = _jwtService.GenerateUserToken(user.Id, user.Email, user.Name, user.Role, user.ChannelId);
@@ -88,13 +88,13 @@ public class AuthController : ControllerBase
     {
         if (_currentUser.UserId == null)
         {
-            return Unauthorized(new { error = "AUTH_003", message = "Not authenticated" });
+            return Unauthorized(new { error = "AUTH_012", message = "Not authenticated" });
         }
 
         var user = await _userAuthRepo.GetByIdAsync(_currentUser.UserId.Value);
         if (user == null)
         {
-            return NotFound(new { error = "AUTH_004", message = "User not found" });
+            return NotFound(new { error = "AUTH_013", message = "User not found" });
         }
 
         return Ok(new

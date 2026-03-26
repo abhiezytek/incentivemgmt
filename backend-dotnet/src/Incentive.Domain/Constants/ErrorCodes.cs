@@ -15,6 +15,12 @@ public static class ErrorCodes
     public static readonly ErrorDef AUTH_006 = new("AUTH_006", 403, "System client is inactive");
     public static readonly ErrorDef AUTH_007 = new("AUTH_007", 403, "Endpoint not permitted for this client");
 
+    // ── User Login ──────────────────────────────
+    public static readonly ErrorDef AUTH_010 = new("AUTH_010", 401, "Invalid email or password");
+    public static readonly ErrorDef AUTH_011 = new("AUTH_011", 401, "User account is deactivated");
+    public static readonly ErrorDef AUTH_012 = new("AUTH_012", 401, "Not authenticated");
+    public static readonly ErrorDef AUTH_013 = new("AUTH_013", 404, "User not found");
+
     // ── Validation ───────────────────────────────
     public static readonly ErrorDef VAL_001 = new("VAL_001", 400, "Required field missing");
     public static readonly ErrorDef VAL_002 = new("VAL_002", 400, "Invalid date format (expected YYYY-MM-DD)");
