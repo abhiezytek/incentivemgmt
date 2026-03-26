@@ -1,9 +1,17 @@
 const COLOR_MAP = {
-  blue: 'text-primary bg-primary-50',
-  green: 'text-success bg-green-50',
-  yellow: 'text-warning bg-amber-50',
-  red: 'text-error bg-red-50',
-  grey: 'text-accent bg-gray-100',
+  blue: 'text-action-blue bg-[#1D4ED8]/10',
+  green: 'text-success bg-[#7AD67A]/20',
+  yellow: 'text-[#7A3E00] bg-[#D6A15C]/20',
+  red: 'text-ent-error bg-red-50',
+  grey: 'text-ent-muted bg-gray-100',
+}
+
+const ACCENT_MAP = {
+  blue: 'border-l-action-blue',
+  green: 'border-l-ent-success',
+  yellow: 'border-l-ent-hold',
+  red: 'border-l-ent-error',
+  grey: 'border-l-ent-muted',
 }
 
 export default function StatCard({
@@ -13,24 +21,30 @@ export default function StatCard({
   trend,
   color = 'blue',
   className = '',
+  accentColor,
 }) {
   const iconColors = COLOR_MAP[color] || COLOR_MAP.blue
+  const accent = accentColor
+    ? ACCENT_MAP[accentColor] || `border-l-[${accentColor}]`
+    : ''
 
   return (
     <div
-      className={`relative flex items-start gap-4 rounded-lg border border-border bg-surface p-5 shadow-sm ${className}`}
+      className={`relative flex items-start gap-4 rounded-xl border border-ent-border bg-ent-surface p-5 shadow-sm ${accent ? `border-l-4 ${accent}` : ''} ${className}`}
     >
       {icon && (
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconColors}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconColors}`}
         >
           {icon}
         </div>
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-text-muted">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-text-primary">{value}</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-ent-muted">
+          {label}
+        </p>
+        <p className="mt-1 text-2xl font-bold text-ent-text">{value}</p>
       </div>
 
       {trend !== undefined && trend !== null && (
@@ -47,7 +61,7 @@ export default function StatCard({
             </svg>
           ) : (
             <svg
-              className="h-4 w-4 text-error"
+              className="h-4 w-4 text-ent-error"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -58,7 +72,7 @@ export default function StatCard({
           )}
           <span
             className={`text-xs font-medium ${
-              Number(trend) >= 0 ? 'text-success' : 'text-error'
+              Number(trend) >= 0 ? 'text-success' : 'text-ent-error'
             }`}
           >
             {Math.abs(trend)}%
