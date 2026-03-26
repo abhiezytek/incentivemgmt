@@ -2,6 +2,17 @@ import { useState, useCallback } from 'react'
 import { useCreateKPIMutation, useUpdateKPIMutation } from '../../store/apiSlice'
 import { RightPreviewPanel, Button, AlertPanel } from '../ui'
 
+// TODO: The following form fields are not yet supported by the backend API
+// and need to be added to POST /api/kpis and PUT /api/kpis/:id:
+//   - validity_start, validity_end (date range for KPI applicability)
+//   - effective_range (value range string)
+//   - channel (applicable sales channel)
+//   - designation (target role/designation)
+//   - product_category (product classification)
+//   - threshold_amount (minimum qualifying amount)
+//   - prerequisite_links (dependent KPI references)
+// Until then, these fields are stored in local form state only.
+
 const INITIAL_FORM = {
   name: '',
   type: 'NUMERIC',
@@ -56,7 +67,6 @@ function buildInitialForm(kpi) {
     status: kpi.status || 'draft',
     validity_start: kpi.validity_start || '',
     validity_end: kpi.validity_end || '',
-    // TODO: Wire to backend when API supports these fields
     effective_range: kpi.effective_range || '',
     channel: kpi.channel || '',
     designation: kpi.designation || '',
@@ -188,7 +198,7 @@ export default function KPIDetailPanel({ open, onClose, kpi, onSaved }) {
             </FormField>
           </div>
 
-          {/* TODO: Wire to backend when API supports these fields */}
+          {/* Fields below are local-only until backend API is extended (see TODO at top) */}
           <FormField label="Effective Range">
             <input
               type="text"
@@ -199,7 +209,6 @@ export default function KPIDetailPanel({ open, onClose, kpi, onSaved }) {
             />
           </FormField>
 
-          {/* TODO: Wire to backend when API supports these fields */}
           <FormField label="Applicable Channel">
             <input
               type="text"
@@ -210,7 +219,6 @@ export default function KPIDetailPanel({ open, onClose, kpi, onSaved }) {
             />
           </FormField>
 
-          {/* TODO: Wire to backend when API supports these fields */}
           <FormField label="Target Designation">
             <input
               type="text"
@@ -221,7 +229,6 @@ export default function KPIDetailPanel({ open, onClose, kpi, onSaved }) {
             />
           </FormField>
 
-          {/* TODO: Wire to backend when API supports these fields */}
           <FormField label="Product Category">
             <input
               type="text"
@@ -232,7 +239,6 @@ export default function KPIDetailPanel({ open, onClose, kpi, onSaved }) {
             />
           </FormField>
 
-          {/* TODO: Wire to backend when API supports these fields */}
           <FormField label="Threshold Amount">
             <input
               type="number"
@@ -243,7 +249,6 @@ export default function KPIDetailPanel({ open, onClose, kpi, onSaved }) {
             />
           </FormField>
 
-          {/* TODO: Wire to backend when API supports these fields */}
           <FormField label="Prerequisite Links">
             <input
               type="text"

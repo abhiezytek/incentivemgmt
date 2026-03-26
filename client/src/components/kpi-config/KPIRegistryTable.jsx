@@ -48,7 +48,8 @@ export default function KPIRegistryTable({ onSelectKPI }) {
     const total = kpis.length
     const active = kpis.filter((k) => k.status === 'active').length
     const draft = kpis.filter((k) => k.status === 'draft').length
-    // TODO: Wire derived variables count to backend when API supports it
+    // TODO: Add derived variables count via GET /api/derived-variables when that
+    // endpoint returns a count or filterable results linked to specific KPIs
     return { total, active, draft, derived: 0 }
   }, [kpis])
 
