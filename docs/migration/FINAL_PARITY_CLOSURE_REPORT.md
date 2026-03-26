@@ -23,12 +23,13 @@
 
 | Test Suite | Location | Count | Status |
 |---|---|---|---|
-| Wave 1 Integration Tests | `Wave1EndpointTests.cs` | 27 | ✅ Present |
-| Wave 2 Integration Tests | `Wave2EndpointTests.cs` | 30 | ✅ Present |
-| Wave 3 Integration Tests | `Wave3EndpointTests.cs` | 40+ | ✅ Present |
+| Auth Endpoint Tests | `AuthEndpointTests.cs` | 20 | ✅ All pass |
+| Wave 1 Integration Tests | `Wave1EndpointTests.cs` | 27 | ✅ All pass |
+| Wave 2 Integration Tests | `Wave2EndpointTests.cs` | 30 | ✅ All pass |
+| Wave 3 Integration Tests | `Wave3EndpointTests.cs` | 40+ | ✅ All pass |
 | Wave 4 Integration Tests | Documented, pending commit | 44 | ⚠️ Documented |
 | Wave 4 Regression Tests | Documented, pending commit | 15 | ⚠️ Documented |
-| **Total** | | **156+** | |
+| **Total** | | **176+** | **135 committed, all pass** |
 
 ### Node.js Baseline Tests (available for cross-verification)
 - E2E: `fullFlowTest.js` — 46 tests (T01-T46)
@@ -83,11 +84,14 @@
 - Mark-paid: INITIATED → PAID: ✅
 - Documented in: `WAVE4_EXPORT_PAYOUT_PARITY.md`
 
-### Auth Parity: ✅ FULL
-- userAuth: placeholder pass-through — exact match with Node.js
+### Auth Parity: ✅ HARDENED (BEYOND PARITY)
+- userAuth: **Enhanced** — .NET now has full JWT Bearer auth with role-based authorization
+  - Node.js still has placeholder pass-through
+  - .NET has: login endpoint, JWT issuance, [Authorize] on all controllers, role policies
 - systemAuth: full JWT validation — exact match with Node.js (7-step flow)
-- All error codes match: MISSING_TOKEN, TOKEN_EXPIRED, INVALID_TOKEN, etc.
-- Documented in: `AUTH_PARITY_AND_HARDENING.md`
+- All error codes match: MISSING_TOKEN, TOKEN_EXPIRED, INVALID_TOKEN, UNAUTHORIZED, FORBIDDEN
+- 20 dedicated auth tests added
+- Documented in: `AUTH_PARITY_AND_HARDENING.md`, `AUTH_ROLE_POLICY_MATRIX.md`, `AUTH_CURRENT_STATE_ANALYSIS.md`
 
 ### Status Pipeline Parity: ✅ FULL
 - DRAFT → APPROVED (requires persistency_gate_passed, not held): ✅
@@ -111,9 +115,10 @@
 |---|---|---|---|
 | Quartz.NET scheduler | Deferred | External cron covers | DevOps configures cron |
 | SFTP client (SSH.NET) | Deferred | Manual upload available | Post-go-live enhancement |
-| Token issuance endpoint | Stub | Pre-generate tokens | Post-go-live enhancement |
+| System token issuance endpoint | Stub | Pre-generate tokens | Post-go-live enhancement |
 | Wave 4 test file commit | Pending | Node tests cover parity | Commit before production |
 | CORS hardening | Same as Node | No degradation | Post-go-live security task |
+| Rate limiting on login | Not implemented | Low risk for UAT | Post-go-live enhancement |
 
 ---
 
@@ -126,7 +131,8 @@
 | Calculation parity documented | ✅ WAVE4_CALCULATION_PARITY.md |
 | Upload parity documented | ✅ WAVE4_UPLOAD_PARITY.md |
 | Export parity documented | ✅ WAVE4_EXPORT_PAYOUT_PARITY.md |
-| Auth parity verified | ✅ Exact match with Node.js |
+| Auth hardened | ✅ Full JWT auth with role-based access control |
+| Auth parity verified | ✅ Exceeds Node.js (user login + role enforcement added) |
 | Status pipeline preserved | ✅ DRAFT → APPROVED → INITIATED → PAID |
 | Additive adjustment preserved | ✅ Never modifies base results |
 | Gate-failed exclusion preserved | ✅ Blocks approval and export |

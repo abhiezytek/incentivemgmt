@@ -31,17 +31,17 @@
 
 ---
 
-## 3. Auth/JWT Placeholder (userAuth)
+## 3. Auth/JWT — NOW HARDENED
 
 | Field | Value |
 |---|---|
-| **Classification** | **NON-BLOCKER WITH WORKAROUND** |
-| **Business Impact** | No user-level authentication enforced on business endpoints. |
-| **Technical Impact** | UserAuthMiddleware passes all requests through — identical behavior to Node.js `userAuth` which is also a placeholder pass-through. |
-| **Evidence** | Node.js `server/src/middleware/userAuth.js` contains: `export default function userAuth(req, res, next) { next(); }` — exact same placeholder behavior as .NET `UserAuthMiddleware`. |
-| **SystemAuth** | ✅ **Fully implemented** in .NET — `SystemAuthMiddleware.cs` validates JWT, checks `api_clients` table, verifies `allowed_endpoints`, updates `last_used_at`. Perfect parity with Node.js `systemAuth.js`. |
-| **Go-Live Recommendation** | **Proceed** — parity is exact. Both Node and .NET have the same placeholder userAuth. SystemAuth (for integrations) is fully functional. |
-| **Owner/Action** | Product: schedule user auth implementation when login system is designed. |
+| **Classification** | **RESOLVED — NO LONGER A GAP** |
+| **Business Impact** | User-level JWT authentication now enforced on all business endpoints with role-based access control. |
+| **Technical Impact** | Full JWT Bearer auth implemented: login endpoint, token validation, role-based [Authorize] on all controllers, structured 401/403 responses. |
+| **What Changed** | Implemented `POST /api/auth/login`, `GET /api/auth/me`, `[Authorize]` on all 8 migrated controllers, `JwtTokenService`, `UserAuthRepository`, `CurrentUserService`. |
+| **Status** | .NET auth is now **ahead** of Node.js (which still has placeholder userAuth). SystemAuth remains at exact parity. |
+| **Go-Live Recommendation** | **Auth is ready for UAT and production.** |
+| **Owner/Action** | Set strong `Jwt:Secret` in production appsettings. |
 
 ---
 
@@ -101,12 +101,13 @@
 |---|---|---|---|
 | 1 | Quartz.NET scheduler | NON-BLOCKER WITH WORKAROUND | External cron covers |
 | 2 | SFTP client library | NON-BLOCKER WITH WORKAROUND | Manual upload available |
-| 3 | Auth/JWT placeholder | NON-BLOCKER | Exact Node parity |
+| 3 | Auth/JWT | ✅ RESOLVED | Full JWT auth implemented |
 | 4 | Floating point precision | NON-BLOCKER | .NET is more precise |
 | 5 | Wave 4 test files | NON-BLOCKER WITH WORKAROUND | Node tests cover parity |
 | 6 | Wave 4 DI registration | NON-BLOCKER | /api structure functional |
 | 7 | Production config | POST-GO-LIVE ENHANCEMENT | Same as Node |
 
 ### Verdict: **NO BLOCKERS IDENTIFIED**
-All items are either at exact parity with Node.js or have viable workarounds.
+All items are either resolved, at exact parity with Node.js, or have viable workarounds.
+Auth gap has been fully resolved with JWT hardening.
 **Recommendation: READY FOR UAT**, with test file addition recommended before production cutover.
