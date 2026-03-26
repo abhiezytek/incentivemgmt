@@ -125,7 +125,9 @@
 
 | Node Route File | HTTP Method | Endpoint | Purpose | Target .NET Controller | Target Action | Priority | Notes |
 |-----------------|-------------|----------|---------|----------------------|---------------|----------|-------|
-| `auth/systemToken.js` | POST | `/api/auth/system-token` | Issue system JWT | `AuthController` | `GetSystemToken(...)` | P4 | 🟠 Stub — userAuth placeholder parity |
+| `auth/systemToken.js` | POST | `/api/auth/system-token` | Issue system JWT | `AuthController` | `GetSystemToken(...)` | P4 | 🟠 Migrated Wave 4 |
+| — (new) | POST | `/api/auth/login` | User login + JWT | `AuthController` | `Login(...)` | Auth | ✅ Auth hardening — .NET ahead of Node |
+| — (new) | GET | `/api/auth/me` | Current user profile | `AuthController` | `GetMe()` | Auth | ✅ Auth hardening — .NET ahead of Node |
 
 ## Integration Routes
 

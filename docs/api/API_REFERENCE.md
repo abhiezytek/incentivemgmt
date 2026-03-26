@@ -6,10 +6,16 @@
 
 ## Base URLs
 
-| Environment | URL |
-|-------------|-----|
-| Development | `http://localhost:5000/api` |
-| Production  | `https://api.incentive.yourdomain.com/api` |
+| Environment | URL | Backend |
+|-------------|-----|---------|
+| Development (Node.js — deprecated) | `http://localhost:5000/api` | Node.js Express |
+| Development (.NET 10 — **current**) | `http://localhost:5001/api` | .NET 10 API |
+| UAT | `https://uat-api.incentive.yourdomain.com/api` | .NET 10 API |
+| Production  | `https://api.incentive.yourdomain.com/api` | .NET 10 API |
+
+> **Note:** As of March 2026, the .NET 10 backend is the active business API.
+> The Node.js backend is deprecated and being decommissioned.
+> Set `VITE_API_URL` to point to the .NET API URL.
 
 ---
 
@@ -17,7 +23,20 @@
 
 The system uses two authentication mechanisms:
 
-### 1. System Token (machine-to-machine)
+### 1. User Auth (JWT Bearer — .NET 10)
+
+Used by the web UI for all authenticated API calls.
+
+1. Call `POST /api/auth/login` with `{ email, password }` to obtain a JWT.
+2. Include the token in all subsequent requests:
+   ```
+   Authorization: Bearer <token>
+   ```
+3. Tokens expire after the configured `Jwt:ExpiryHours` (default: 24 hours).
+4. Call `GET /api/auth/me` to get the current user's profile.
+5. Role-based authorization is enforced on all business endpoints.
+
+### 2. System Token (machine-to-machine)
 
 Used by external systems (Penta, LifeAsia) to call inbound integration endpoints.
 
@@ -28,10 +47,6 @@ Used by external systems (Penta, LifeAsia) to call inbound integration endpoints
    ```
 3. Tokens expire after **24 hours**.
 4. Each client has an `allowed_endpoints` whitelist; requests to non-whitelisted paths are rejected with `401 ENDPOINT_NOT_ALLOWED`.
-
-### 2. User Auth (browser sessions)
-
-Used by the web UI. Currently a **pass-through placeholder** — all requests are permitted. Will enforce session cookies or user JWTs when the login system is implemented.
 
 ### Standard Error Codes
 

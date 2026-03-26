@@ -1,5 +1,81 @@
 # Developer Guide
 
+> **⚠️ IMPORTANT: As of March 2026, the .NET 10 backend (`backend-dotnet/`) is the active business API.**
+> The Node.js backend (`server/`) is deprecated and being decommissioned.
+> See `/docs/migration/` for full migration documentation.
+
+---
+
+## Quick Start — .NET 10 Backend (Current)
+
+### Prerequisites
+- .NET 10 SDK
+- PostgreSQL 15+
+- Node.js 20+ (for frontend only)
+
+### Build & Run
+```bash
+# Build .NET backend
+cd backend-dotnet && dotnet build
+
+# Run .NET backend (default port 5001)
+cd backend-dotnet/src/Incentive.Api && dotnet run
+
+# Run frontend with .NET backend
+cd client
+echo "VITE_API_URL=http://localhost:5001/api" > .env.local
+npm run dev
+```
+
+### Run Tests
+```bash
+cd backend-dotnet && dotnet test
+# Expects: 135 tests passing (20 auth + 27 Wave1 + 30 Wave2 + 40+ Wave3 + others)
+```
+
+### Key Directories
+| Directory | Purpose |
+|-----------|---------|
+| `backend-dotnet/src/Incentive.Api/` | Controllers, middleware, extensions |
+| `backend-dotnet/src/Incentive.Application/` | Interfaces, DTOs, service abstractions |
+| `backend-dotnet/src/Incentive.Domain/` | Constants, enums, exceptions |
+| `backend-dotnet/src/Incentive.Infrastructure/` | Dapper repositories, SQL, security services |
+| `backend-dotnet/tests/` | Integration and regression tests |
+| `client/` | React frontend (Vite + RTK Query) |
+| `docs/migration/` | Migration documentation |
+| `server/` | Node.js backend (DEPRECATED) |
+
+### Environment Configuration
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string | `Host=localhost;Port=5432;Database=incentivemgmt;...` |
+| `Jwt__Secret` | JWT signing secret | (must be set) |
+| `Jwt__SystemSecret` | System-to-system JWT secret | (must be set) |
+| `Jwt__Issuer` | JWT issuer | `IncentiveApi` |
+| `Jwt__ExpiryHours` | Token lifetime in hours | `24` |
+| `VITE_API_URL` | Frontend API base URL | `http://localhost:5000/api` (change to 5001 for .NET) |
+
+---
+
+## Section 0 — Migration Status
+
+The application has been migrated from Node.js (Express) to .NET 10 (ASP.NET Core):
+
+| Wave | Endpoints | Controllers | Status |
+|------|-----------|-------------|--------|
+| Wave 1 | 7 read-only | Dashboard, SystemStatus, Notifications, OrgDomainMapping, Programs | ✅ Complete |
+| Wave 2 | 8 config | Programs CRUD, KpiConfig | ✅ Complete |
+| Wave 3 | 10 workflow | ReviewAdjustments, ExceptionLog | ✅ Complete |
+| Wave 4 | 50+ complex | Uploads, Calculation, IncentiveResults, Export, Payouts, Integration, Data | ✅ Complete |
+| Auth | 2 new + 1 migrated | AuthController (login, me, system-token) | ✅ Hardened |
+
+**Total: 75+ endpoints, 9 controllers, 135 tests, 0 blockers**
+
+For detailed migration documentation, see:
+- `docs/migration/FINAL_PARITY_CLOSURE_REPORT.md`
+- `docs/migration/FINAL_CUTOVER_READINESS_REPORT.md`
+- `docs/migration/AUTH_PARITY_AND_HARDENING.md`
+
 ---
 
 ## Section 1 — What This Application Does
@@ -58,23 +134,25 @@ Policies that are newly issued within the incentive period. NB count and NB prem
 
 ### 2.1 Technology Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Frontend | React + Vite | 18.x / 8.x |
-| Styling | TailwindCSS | 4.x |
-| Charts | Recharts | 3.x |
-| State Management | Redux Toolkit + RTK Query | 2.x |
-| Backend | Node.js + Express | 20.x / 4.x |
-| Database | PostgreSQL | 15+ |
-| DB Driver | node-postgres (pg) — raw SQL, **no ORM** | 8.x |
-| File Upload | Multer | 2.x |
-| CSV (server) | csv-parse | 6.x |
-| CSV (client) | PapaParse | 5.x |
-| Auth | jsonwebtoken | 9.x |
-| SFTP | ssh2-sftp-client | 12.x |
-| Scheduler | node-cron | 4.x |
-| API Docs | swagger-ui-express (5.x) + swagger-jsdoc (6.x) | — |
-| Excel Export | ExcelJS | 4.x |
+| Layer | Technology | Version | Status |
+|-------|-----------|---------|--------|
+| Frontend | React + Vite | 18.x / 8.x | Active |
+| Styling | TailwindCSS | 4.x | Active |
+| Charts | Recharts | 3.x | Active |
+| State Management | Redux Toolkit + RTK Query | 2.x | Active |
+| **Backend (.NET 10)** | **ASP.NET Core + Dapper** | **10.x** | **Active** |
+| Backend (Node.js) | Node.js + Express | 20.x / 4.x | **DEPRECATED** |
+| Database | PostgreSQL | 15+ | Active |
+| DB Driver (.NET) | Npgsql + Dapper | 9.x / 2.x | Active |
+| DB Driver (Node) | node-postgres (pg) | 8.x | DEPRECATED |
+| Auth (.NET) | JWT Bearer + BCrypt.Net | 8.x / 4.x | Active |
+| API Docs (.NET) | Swashbuckle (Swagger) | 10.x | Active |
+| File Upload | Multer (Node) / IFormFile (.NET) | 2.x | .NET Active |
+| CSV (server) | csv-parse (Node) / CsvHelper (.NET) | 6.x | .NET Active |
+| CSV (client) | PapaParse | 5.x | Active |
+| SFTP | ssh2-sftp-client (deferred) | 12.x | Deferred — manual upload available |
+| Scheduler | node-cron (Node) / Quartz.NET (deferred) | 4.x | Deferred — trigger endpoints available |
+| Excel Export | ExcelJS | 4.x | Active (client-side) |
 
 ### 2.2 Folder Structure
 

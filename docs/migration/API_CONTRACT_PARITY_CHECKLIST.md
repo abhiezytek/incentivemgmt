@@ -335,5 +335,5 @@ Error: 401 if credentials invalid
 | Payouts (rules + slabs CRUD) | ✅ Full | Wave 4 |
 | Integration (Penta/LifeAsia/status/triggers) | ✅ Full | Wave 4 — trigger-only for SFTP/hierarchy |
 | Data (agents/products/groups/leaderboard/dashboard) | ✅ Full | Wave 4 |
-| Auth (system-token) | ⚠️ Partial | Placeholder — matches Node's placeholder userAuth |
-| Background Jobs (SFTP/hierarchy) | ⚠️ Deferred | Trigger endpoints available, no auto-scheduling |
+| Auth (login/me/system-token) | ✅ Full (Enhanced) | JWT hardened — login + me + system-token. .NET now AHEAD of Node (Node userAuth still placeholder) |
+| Background Jobs (SFTP/hierarchy) | ⚠️ Deferred | Trigger endpoints available, no auto-scheduling. Non-blocking with external cron workaround |

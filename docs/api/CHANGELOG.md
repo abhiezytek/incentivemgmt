@@ -13,6 +13,49 @@
 
 ---
 
+## v2.0.0 — March 2026 (.NET 10 Migration + Auth Hardening)
+
+### ⚠️ BREAKING: Backend Platform Change
+- **Backend migrated from Node.js (Express) to .NET 10 (ASP.NET Core)**
+- All 75+ API endpoints preserved with full contract parity
+- Same PostgreSQL database — no schema changes required for cutover
+- Frontend requires only `VITE_API_URL` environment variable update
+
+### Added — Authentication & Authorization
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/auth/login` | User login with email/password → JWT token |
+| GET | `/api/auth/me` | Get authenticated user profile |
+
+### Changed — Authorization Enforcement
+- All business endpoints now require JWT Bearer authentication
+- Role-based access control enforced on all controllers:
+  - `DashboardController` — Any authenticated user
+  - `ProgramsController` — Read: any authenticated; Write: ConfigManagers (ADMIN, OPS, MANAGER)
+  - `KpiConfigController` — ConfigManagers (ADMIN, OPS, MANAGER)
+  - `ReviewAdjustmentsController` — WorkflowActors (ADMIN, OPS, FINANCE, MANAGER)
+  - `ExceptionLogController` — AdminOrOps (ADMIN, OPS)
+  - `SystemStatusController` — AdminOrOps (ADMIN, OPS)
+  - `NotificationsController` — Any authenticated user
+  - `OrgDomainMappingController` — AdminOrOps (ADMIN, OPS)
+
+### Migration Details
+- Wave 1: 7 read-only endpoints (Dashboard, SystemStatus, Notifications, OrgDomainMapping, Programs/preview)
+- Wave 2: 8 config endpoints (Programs CRUD + KPI Config)
+- Wave 3: 10 workflow endpoints (ReviewAdjustments + ExceptionLog)
+- Wave 4: 50+ endpoints (Uploads, Calculation, IncentiveResults, Export, Payouts, Integration, Data)
+- Auth Hardening: JWT Bearer authentication with role-based [Authorize] attributes
+- 135 integration tests passing
+- Full documentation in `/docs/migration/`
+
+### Deployment
+- Set `VITE_API_URL` to .NET API URL (e.g., `http://localhost:5001/api`)
+- Configure `Jwt:Secret`, `Jwt:SystemSecret`, `Jwt:Issuer`, `Jwt:ExpiryHours` in appsettings
+- Health check: `GET /api/health` → `{ status: "ok" }`
+- Swagger UI: `/api/docs` (Development environment only)
+
+---
+
 ## v1.1.0 — March 2026
 
 ### Added
