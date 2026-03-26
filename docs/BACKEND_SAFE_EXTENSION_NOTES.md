@@ -475,3 +475,81 @@ Each migration must include:
 - `CREATE TABLE IF NOT EXISTS` for idempotency
 - Corresponding indexes for query performance
 - A rollback section (`-- ROLLBACK: DROP TABLE IF EXISTS ...`)
+
+---
+
+## Implementation Status (Actual)
+
+> Updated after code implementation — reflects what was actually built.
+
+### APIs Added
+
+| Endpoint | Method | Route File | Status |
+|----------|--------|------------|--------|
+| `/api/review-adjustments` | GET | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/review-adjustments/:id` | GET | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/review-adjustments/:id/adjust` | POST | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/review-adjustments/:id/hold` | POST | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/review-adjustments/:id/release` | POST | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/review-adjustments/batch-approve` | POST | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/review-adjustments/:id/audit` | GET | `reviewAdjustments.js` | ✅ Implemented |
+| `/api/exception-log` | GET | `exceptionLog.js` | ✅ Implemented |
+| `/api/exception-log/:id` | GET | `exceptionLog.js` | ✅ Implemented |
+| `/api/exception-log/:id/resolve` | POST | `exceptionLog.js` | ✅ Implemented |
+| `/api/dashboard/executive-summary` | GET | `executiveSummary.js` | ✅ Implemented |
+| `/api/system-status/summary` | GET | `systemStatus.js` | ✅ Implemented |
+| `/api/notifications` | GET | `notifications.js` | ✅ Implemented |
+| `/api/notifications/:id/read` | POST | `notifications.js` | ✅ Implemented |
+| `/api/notifications/mark-all-read` | POST | `notifications.js` | ✅ Implemented |
+| `/api/org-domain-mapping` | GET | `orgDomainMapping.js` | ✅ Implemented |
+| `/api/kpi-config/registry` | GET | `kpiConfig.js` | ✅ Implemented |
+| `/api/kpi-config/:id/validate` | POST | `kpiConfig.js` | ✅ Implemented |
+| `/api/kpi-config/:id/summary` | GET | `kpiConfig.js` | ✅ Implemented |
+| `/api/programs/:id/preview` | GET | `programs.js` | ✅ Implemented |
+
+### Migrations Added
+
+| File | Tables |
+|------|--------|
+| `006_additive_tables.sql` | `incentive_adjustments`, `incentive_review_actions`, `operational_exceptions`, `notification_events` |
+
+### Existing Routes Preserved
+
+All 20+ existing route files are unchanged. The following route registrations in `server/index.js` remain intact:
+- `/api/upload`, `/api/programs`, `/api/kpis`, `/api/payouts`, `/api/calculate`
+- `/api/groups`, `/api/incentive-results`, `/api/leaderboard`, `/api/dashboard`
+- `/api/performance`, `/api/derived-variables`, `/api/policy-transactions`
+- `/api/agents`, `/api/persistency-data`, `/api/products`, `/api/incentive-rates`
+- `/api/auth`, `/api/integration/*`
+
+### Tables NOT Modified
+
+- `ins_policy_transactions` — untouched
+- `ins_persistency_data` — untouched
+- `ins_agent_kpi_summary` — untouched
+- `ins_incentive_results` — untouched (adjustments stored separately)
+- `ins_incentive_rates` — untouched
+- `ins_mlm_override_rates` — untouched
+
+### Risks and Mitigation
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| New tables fail to create | Low | All use `CREATE TABLE IF NOT EXISTS` |
+| Adjustment sums incorrectly included in payouts | Medium | Adjustments are in separate table; payout export queries read `ins_incentive_results` only |
+| Executive summary query performance | Low | Reuses existing indexed queries; no new JOINs on large tables |
+| Hold status conflicts with approval flow | Medium | Hold is a virtual status in `incentive_adjustments`; DRAFT→APPROVED pipeline in `ins_incentive_results` is unaffected |
+
+### Manual Post-Change Verification Checklist
+
+- [ ] Run `006_additive_tables.sql` migration
+- [ ] Verify `GET /api/health` returns 200
+- [ ] Verify `GET /api/dashboard/summary` returns existing data
+- [ ] Verify `GET /api/incentive-results` returns existing results
+- [ ] Verify `POST /api/incentive-results/bulk-approve` works
+- [ ] Verify `POST /api/integration/export/sap-fico` works
+- [ ] Verify `GET /api/review-adjustments` returns 200
+- [ ] Verify `GET /api/exception-log` returns 200
+- [ ] Verify `GET /api/dashboard/executive-summary` returns kpiCards
+- [ ] Run E2E test suite: `node src/tests/e2e/fullFlowTest.js`
+- [ ] Run regression test: `node src/tests/regression/calculationRegressionTest.js`
