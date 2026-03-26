@@ -6,13 +6,41 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url",       "value": "http://localhost:5000/api", "type": "string" },
-    { "key": "user_token",     "value": "",                          "type": "string" },
-    { "key": "system_token",   "value": "",                          "type": "string" },
-    { "key": "program_id",     "value": "1",                         "type": "string" },
-    { "key": "period_start",   "value": "2026-01-01",                "type": "string" },
-    { "key": "period_end",     "value": "2026-01-31",                "type": "string" },
-    { "key": "agent_code",     "value": "AGT001",                    "type": "string" }
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "system_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "program_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "period_start",
+      "value": "2026-01-01",
+      "type": "string"
+    },
+    {
+      "key": "period_end",
+      "value": "2026-01-31",
+      "type": "string"
+    },
+    {
+      "key": "agent_code",
+      "value": "AGT001",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -32,7 +60,7 @@
                   "const json = pm.response.json();",
                   "if (json.token) {",
                   "    pm.collectionVariables.set('system_token', json.token);",
-                  "    console.log('✅ system_token saved');",
+                  "    console.log('\u2705 system_token saved');",
                   "}",
                   "pm.test('Token returned', () => pm.expect(json.token).to.be.a('string'));"
                 ]
@@ -42,7 +70,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -50,8 +81,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/system-token",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "system-token"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "system-token"
+              ]
             },
             "description": "Authenticate as a system client and receive a JWT. The token is automatically saved to the `system_token` collection variable."
           }
@@ -69,7 +105,7 @@
                   "const json = pm.response.json();",
                   "if (json.token) {",
                   "    pm.collectionVariables.set('user_token', json.token);",
-                  "    console.log('✅ user_token saved');",
+                  "    console.log('\u2705 user_token saved');",
                   "}",
                   "pm.test('Token returned', () => pm.expect(json.token).to.be.a('string'));"
                 ]
@@ -79,7 +115,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -87,8 +126,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
             "description": "Login with user credentials. Token is automatically saved to the `user_token` collection variable.\n\n> **Note**: User auth is currently a pass-through placeholder. This endpoint is planned for future implementation."
           }
@@ -106,7 +150,7 @@
                   "const json = pm.response.json();",
                   "if (json.token) {",
                   "    pm.collectionVariables.set('user_token', json.token);",
-                  "    console.log('✅ user_token refreshed');",
+                  "    console.log('\u2705 user_token refreshed');",
                   "}"
                 ]
               }
@@ -115,11 +159,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -127,8 +179,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/refresh",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "refresh"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
             },
             "description": "Refresh an expiring user token. Planned for future implementation."
           }
@@ -156,14 +213,23 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/programs",
-              "host": ["{{base_url}}"],
-              "path": ["programs"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programs"
+              ]
             },
             "description": "Retrieve all incentive programs."
           }
@@ -181,7 +247,7 @@
                   "const json = pm.response.json();",
                   "if (json.id) {",
                   "    pm.collectionVariables.set('program_id', json.id);",
-                  "    console.log('✅ program_id saved:', json.id);",
+                  "    console.log('\u2705 program_id saved:', json.id);",
                   "}"
                 ]
               }
@@ -190,11 +256,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -202,8 +276,12 @@
             },
             "url": {
               "raw": "{{base_url}}/programs",
-              "host": ["{{base_url}}"],
-              "path": ["programs"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programs"
+              ]
             },
             "description": "Create a new incentive program. The returned `id` is saved to `program_id`."
           }
@@ -225,14 +303,24 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/programs/{{program_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["programs", "{{program_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programs",
+                "{{program_id}}"
+              ]
             },
             "description": "Get details of a specific program."
           }
@@ -253,11 +341,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -265,8 +361,13 @@
             },
             "url": {
               "raw": "{{base_url}}/programs/{{program_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["programs", "{{program_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programs",
+                "{{program_id}}"
+              ]
             },
             "description": "Update an existing program."
           }
@@ -287,11 +388,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -299,8 +408,14 @@
             },
             "url": {
               "raw": "{{base_url}}/programs/{{program_id}}/status",
-              "host": ["{{base_url}}"],
-              "path": ["programs", "{{program_id}}", "status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programs",
+                "{{program_id}}",
+                "status"
+              ]
             },
             "description": "Toggle the active/inactive status of a program."
           }
@@ -321,16 +436,26 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{base_url}}/programs/{{program_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["programs", "{{program_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programs",
+                "{{program_id}}"
+              ]
             },
-            "description": "Delete a program. Use with caution — may fail if KPIs or payouts reference it."
+            "description": "Delete a program. Use with caution \u2014 may fail if KPIs or payouts reference it."
           }
         },
         {
@@ -350,16 +475,28 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/groups?programId={{program_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["groups"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups"
+              ],
               "query": [
-                { "key": "programId", "value": "{{program_id}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                }
               ]
             },
             "description": "List user groups, optionally filtered by program."
@@ -381,11 +518,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -393,8 +538,12 @@
             },
             "url": {
               "raw": "{{base_url}}/groups",
-              "host": ["{{base_url}}"],
-              "path": ["groups"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups"
+              ]
             },
             "description": "Create a new user group."
           }
@@ -415,11 +564,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -427,8 +584,14 @@
             },
             "url": {
               "raw": "{{base_url}}/groups/1/members",
-              "host": ["{{base_url}}"],
-              "path": ["groups", "1", "members"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                "1",
+                "members"
+              ]
             },
             "description": "Add a member to a group."
           }
@@ -449,14 +612,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/groups/1/members",
-              "host": ["{{base_url}}"],
-              "path": ["groups", "1", "members"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                "1",
+                "members"
+              ]
             },
             "description": "List all members in a group."
           }
@@ -484,16 +658,28 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/kpis?programId={{program_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["kpis"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis"
+              ],
               "query": [
-                { "key": "programId", "value": "{{program_id}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                }
               ]
             },
             "description": "List all KPI definitions, optionally filtered by program."
@@ -512,7 +698,7 @@
                   "const json = pm.response.json();",
                   "if (json.id) {",
                   "    pm.collectionVariables.set('kpi_id', json.id);",
-                  "    console.log('✅ kpi_id saved:', json.id);",
+                  "    console.log('\u2705 kpi_id saved:', json.id);",
                   "}"
                 ]
               }
@@ -521,11 +707,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -533,8 +727,12 @@
             },
             "url": {
               "raw": "{{base_url}}/kpis",
-              "host": ["{{base_url}}"],
-              "path": ["kpis"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis"
+              ]
             },
             "description": "Create a new KPI definition for a program."
           }
@@ -555,11 +753,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -567,8 +773,13 @@
             },
             "url": {
               "raw": "{{base_url}}/kpis/1",
-              "host": ["{{base_url}}"],
-              "path": ["kpis", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis",
+                "1"
+              ]
             },
             "description": "Update an existing KPI definition."
           }
@@ -589,14 +800,24 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{base_url}}/kpis/1",
-              "host": ["{{base_url}}"],
-              "path": ["kpis", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis",
+                "1"
+              ]
             },
             "description": "Delete a KPI definition. Will fail if milestones exist."
           }
@@ -617,11 +838,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -629,8 +858,14 @@
             },
             "url": {
               "raw": "{{base_url}}/kpis/1/milestones",
-              "host": ["{{base_url}}"],
-              "path": ["kpis", "1", "milestones"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis",
+                "1",
+                "milestones"
+              ]
             },
             "description": "Add a milestone tier to a KPI (e.g. Bronze/Silver/Gold/Platinum)."
           }
@@ -651,11 +886,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -663,8 +906,14 @@
             },
             "url": {
               "raw": "{{base_url}}/kpis/milestones/1",
-              "host": ["{{base_url}}"],
-              "path": ["kpis", "milestones", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis",
+                "milestones",
+                "1"
+              ]
             },
             "description": "Update an existing milestone."
           }
@@ -685,14 +934,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{base_url}}/kpis/milestones/1",
-              "host": ["{{base_url}}"],
-              "path": ["kpis", "milestones", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpis",
+                "milestones",
+                "1"
+              ]
             },
             "description": "Delete a milestone from a KPI."
           }
@@ -720,16 +980,28 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/payouts?programId={{program_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["payouts"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts"
+              ],
               "query": [
-                { "key": "programId", "value": "{{program_id}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                }
               ]
             },
             "description": "List payout rules for a program."
@@ -748,7 +1020,7 @@
                   "const json = pm.response.json();",
                   "if (json.id) {",
                   "    pm.collectionVariables.set('payout_rule_id', json.id);",
-                  "    console.log('✅ payout_rule_id saved:', json.id);",
+                  "    console.log('\u2705 payout_rule_id saved:', json.id);",
                   "}"
                 ]
               }
@@ -757,11 +1029,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -769,8 +1049,12 @@
             },
             "url": {
               "raw": "{{base_url}}/payouts",
-              "host": ["{{base_url}}"],
-              "path": ["payouts"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts"
+              ]
             },
             "description": "Create a new payout rule. `payout_type`: COMMISSION | BONUS | OVERRIDE. `calc_method`: FLAT | MULTIPLY | PERCENTAGE_OF."
           }
@@ -791,11 +1075,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -803,8 +1095,13 @@
             },
             "url": {
               "raw": "{{base_url}}/payouts/1",
-              "host": ["{{base_url}}"],
-              "path": ["payouts", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts",
+                "1"
+              ]
             },
             "description": "Update an existing payout rule."
           }
@@ -825,11 +1122,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -837,8 +1142,14 @@
             },
             "url": {
               "raw": "{{base_url}}/payouts/1/slabs",
-              "host": ["{{base_url}}"],
-              "path": ["payouts", "1", "slabs"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts",
+                "1",
+                "slabs"
+              ]
             },
             "description": "Add a tiered commission slab to a payout rule."
           }
@@ -859,11 +1170,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -871,8 +1190,14 @@
             },
             "url": {
               "raw": "{{base_url}}/payouts/slabs/1",
-              "host": ["{{base_url}}"],
-              "path": ["payouts", "slabs", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts",
+                "slabs",
+                "1"
+              ]
             },
             "description": "Update an existing payout slab."
           }
@@ -893,14 +1218,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{base_url}}/payouts/slabs/1",
-              "host": ["{{base_url}}"],
-              "path": ["payouts", "slabs", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts",
+                "slabs",
+                "1"
+              ]
             },
             "description": "Delete a payout slab."
           }
@@ -921,11 +1257,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -933,8 +1277,14 @@
             },
             "url": {
               "raw": "{{base_url}}/payouts/1/qualifying-rules",
-              "host": ["{{base_url}}"],
-              "path": ["payouts", "1", "qualifying-rules"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payouts",
+                "1",
+                "qualifying-rules"
+              ]
             },
             "description": "Add a qualifying gate to a payout rule (e.g. minimum persistency threshold)."
           }
@@ -962,7 +1312,12 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
@@ -979,8 +1334,13 @@
             },
             "url": {
               "raw": "{{base_url}}/upload/policy-transactions",
-              "host": ["{{base_url}}"],
-              "path": ["upload", "policy-transactions"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upload",
+                "policy-transactions"
+              ]
             },
             "description": "Upload policy transaction data via CSV.\n\n**Required columns:** policy_number, agent_code, product_code, transaction_type, premium_amount, annualized_premium, paid_date\n\n**Optional columns:** channel_code, region_code, policy_year, sum_assured, payment_mode, issue_date, due_date, policy_status"
           }
@@ -1002,7 +1362,12 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
@@ -1019,8 +1384,13 @@
             },
             "url": {
               "raw": "{{base_url}}/upload/agents",
-              "host": ["{{base_url}}"],
-              "path": ["upload", "agents"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upload",
+                "agents"
+              ]
             },
             "description": "Upload agent master data via CSV.\n\n**Required columns:** agent_code, agent_name, channel_code, region_code, hierarchy_level"
           }
@@ -1041,7 +1411,12 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
@@ -1063,8 +1438,13 @@
             },
             "url": {
               "raw": "{{base_url}}/upload/persistency",
-              "host": ["{{base_url}}"],
-              "path": ["upload", "persistency"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upload",
+                "persistency"
+              ]
             },
             "description": "Upload persistency data via CSV.\n\n**Required columns:** agent_code, persistency_month, period_start, period_end, policies_due, policies_renewed"
           }
@@ -1085,7 +1465,12 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
@@ -1102,8 +1487,13 @@
             },
             "url": {
               "raw": "{{base_url}}/upload/products",
-              "host": ["{{base_url}}"],
-              "path": ["upload", "products"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upload",
+                "products"
+              ]
             },
             "description": "Upload product master data via CSV."
           }
@@ -1124,7 +1514,12 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
@@ -1146,8 +1541,13 @@
             },
             "url": {
               "raw": "{{base_url}}/upload/incentive-rates",
-              "host": ["{{base_url}}"],
-              "path": ["upload", "incentive-rates"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upload",
+                "incentive-rates"
+              ]
             },
             "description": "Upload incentive rate schedules via CSV."
           }
@@ -1168,7 +1568,12 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
@@ -1190,8 +1595,13 @@
             },
             "url": {
               "raw": "{{base_url}}/upload/mlm-override-rates",
-              "host": ["{{base_url}}"],
-              "path": ["upload", "mlm-override-rates"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upload",
+                "mlm-override-rates"
+              ]
             },
             "description": "Upload MLM/hierarchy override rate schedules via CSV."
           }
@@ -1221,11 +1631,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1233,8 +1651,13 @@
             },
             "url": {
               "raw": "{{base_url}}/calculate/run",
-              "host": ["{{base_url}}"],
-              "path": ["calculate", "run"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "calculate",
+                "run"
+              ]
             },
             "description": "Run bulk incentive calculation for all active agents in a program period."
           }
@@ -1255,14 +1678,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/calculate/status/1",
-              "host": ["{{base_url}}"],
-              "path": ["calculate", "status", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "calculate",
+                "status",
+                "1"
+              ]
             },
             "description": "Check the status of a calculation job."
           }
@@ -1285,11 +1719,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1297,8 +1739,14 @@
             },
             "url": {
               "raw": "{{base_url}}/calculate/recompute/{{agent_code}}",
-              "host": ["{{base_url}}"],
-              "path": ["calculate", "recompute", "{{agent_code}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "calculate",
+                "recompute",
+                "{{agent_code}}"
+              ]
             },
             "description": "Recompute incentive for a single agent."
           }
@@ -1326,17 +1774,32 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/incentive-results?programId={{program_id}}&periodStart={{period_start}}",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results"
+              ],
               "query": [
-                { "key": "programId",   "value": "{{program_id}}" },
-                { "key": "periodStart", "value": "{{period_start}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "periodStart",
+                  "value": "{{period_start}}"
+                }
               ]
             },
             "description": "List incentive results with optional filters: programId, periodStart, channel, region, status."
@@ -1358,14 +1821,24 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/incentive-results/1",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "1"
+              ]
             },
             "description": "Get detailed incentive result for a single record."
           }
@@ -1387,11 +1860,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1399,10 +1880,16 @@
             },
             "url": {
               "raw": "{{base_url}}/incentive-results/1/approve",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "1", "approve"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "1",
+                "approve"
+              ]
             },
-            "description": "Approve a single incentive result (DRAFT → APPROVED)."
+            "description": "Approve a single incentive result (DRAFT \u2192 APPROVED)."
           }
         },
         {
@@ -1422,11 +1909,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1434,8 +1929,13 @@
             },
             "url": {
               "raw": "{{base_url}}/incentive-results/bulk-approve",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "bulk-approve"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "bulk-approve"
+              ]
             },
             "description": "Bulk approve all DRAFT results for a program/period. Only results passing the persistency gate are approved."
           }
@@ -1457,11 +1957,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1469,8 +1977,13 @@
             },
             "url": {
               "raw": "{{base_url}}/incentive-results/initiate-payment",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "initiate-payment"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "initiate-payment"
+              ]
             },
             "description": "Move APPROVED results to INITIATED and log the payment reference."
           }
@@ -1492,11 +2005,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1504,8 +2025,13 @@
             },
             "url": {
               "raw": "{{base_url}}/incentive-results/mark-paid",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "mark-paid"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "mark-paid"
+              ]
             },
             "description": "Mark INITIATED results as PAID."
           }
@@ -1526,17 +2052,33 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/incentive-results/summary?programId={{program_id}}&periodStart={{period_start}}",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "summary"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "summary"
+              ],
               "query": [
-                { "key": "programId",   "value": "{{program_id}}" },
-                { "key": "periodStart", "value": "{{period_start}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "periodStart",
+                  "value": "{{period_start}}"
+                }
               ]
             },
             "description": "Get channel-level summary of incentive results."
@@ -1558,17 +2100,33 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/incentive-results/stage-summary?programId={{program_id}}&periodStart={{period_start}}",
-              "host": ["{{base_url}}"],
-              "path": ["incentive-results", "stage-summary"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "incentive-results",
+                "stage-summary"
+              ],
               "query": [
-                { "key": "programId",   "value": "{{program_id}}" },
-                { "key": "periodStart", "value": "{{period_start}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "periodStart",
+                  "value": "{{period_start}}"
+                }
               ]
             },
             "description": "Get pipeline stage counts (DRAFT / APPROVED / INITIATED / PAID) with totals."
@@ -1597,17 +2155,32 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/leaderboard?programId={{program_id}}&period={{period_start}}",
-              "host": ["{{base_url}}"],
-              "path": ["leaderboard"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard"
+              ],
               "query": [
-                { "key": "programId", "value": "{{program_id}}" },
-                { "key": "period",    "value": "{{period_start}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "period",
+                  "value": "{{period_start}}"
+                }
               ]
             },
             "description": "Get ranked agent leaderboard. Optional filters: channel, region."
@@ -1630,17 +2203,33 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/dashboard/summary?programId={{program_id}}&period={{period_start}}",
-              "host": ["{{base_url}}"],
-              "path": ["dashboard", "summary"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "summary"
+              ],
               "query": [
-                { "key": "programId", "value": "{{program_id}}" },
-                { "key": "period",    "value": "{{period_start}}" }
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "period",
+                  "value": "{{period_start}}"
+                }
               ]
             },
             "description": "Executive dashboard with KPI cards, channel breakdown, product mix, top agents, pipeline status, and recent activity."
@@ -1669,11 +2258,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{system_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1681,8 +2278,14 @@
             },
             "url": {
               "raw": "{{base_url}}/integration/penta/policy-transaction",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "penta", "policy-transaction"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "penta",
+                "policy-transaction"
+              ]
             },
             "description": "Push a single policy transaction from Penta. Requires system token."
           }
@@ -1705,11 +2308,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{system_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1717,8 +2328,14 @@
             },
             "url": {
               "raw": "{{base_url}}/integration/penta/policy-batch",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "penta", "policy-batch"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "penta",
+                "policy-batch"
+              ]
             },
             "description": "Push a batch of policy transactions from Penta. Staged in `stg_policy_transactions` for validation."
           }
@@ -1739,11 +2356,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{system_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1751,8 +2376,14 @@
             },
             "url": {
               "raw": "{{base_url}}/integration/penta/agent-status-change",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "penta", "agent-status-change"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "penta",
+                "agent-status-change"
+              ]
             },
             "description": "Notify the system of an agent status change from Penta."
           }
@@ -1774,14 +2405,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{system_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{system_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/penta/sync-status",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "penta", "sync-status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "penta",
+                "sync-status"
+              ]
             },
             "description": "Check Penta integration heartbeat and last sync timestamp."
           }
@@ -1808,11 +2450,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1820,8 +2470,14 @@
             },
             "url": {
               "raw": "{{base_url}}/integration/export/sap-fico",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "export", "sap-fico"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "export",
+                "sap-fico"
+              ]
             },
             "description": "Generate SAP FICO export file for approved incentive results."
           }
@@ -1842,11 +2498,19 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1854,8 +2518,14 @@
             },
             "url": {
               "raw": "{{base_url}}/integration/export/oracle-financials",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "export", "oracle-financials"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "export",
+                "oracle-financials"
+              ]
             },
             "description": "Generate Oracle AP CSV export for approved incentive results. Response is a CSV file download."
           }
@@ -1876,14 +2546,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/export/history",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "export", "history"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "export",
+                "history"
+              ]
             },
             "description": "View history of generated export files from `outbound_file_log`."
           }
@@ -1910,14 +2591,24 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/status",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "status"
+              ]
             },
             "description": "Dashboard status showing health of all integration channels (Life Asia SFTP, Penta API, Hierarchy API, Outbound exports)."
           }
@@ -1939,16 +2630,29 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/file-log?limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "file-log"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "file-log"
+              ],
               "query": [
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "View file processing log entries (SFTP imports, uploads)."
@@ -1971,16 +2675,29 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/audit-log?limit=50",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "audit-log"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "audit-log"
+              ],
               "query": [
-                { "key": "limit", "value": "50" }
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
               ]
             },
             "description": "View API call audit log entries."
@@ -2003,17 +2720,33 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/failed-records?table=stg_policy_transactions&limit=50",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "failed-records"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "failed-records"
+              ],
               "query": [
-                { "key": "table", "value": "stg_policy_transactions" },
-                { "key": "limit", "value": "50" }
+                {
+                  "key": "table",
+                  "value": "stg_policy_transactions"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
               ]
             },
             "description": "View staging records in INVALID or ERROR status. Filterable by table: stg_policy_transactions, stg_agent_master."
@@ -2036,14 +2769,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/trigger/sftp-poll",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "trigger", "sftp-poll"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "trigger",
+                "sftp-poll"
+              ]
             },
             "description": "Manually trigger SFTP poll for Life Asia file imports. Runs asynchronously."
           }
@@ -2065,14 +2809,25 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/trigger/hierarchy-sync",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "trigger", "hierarchy-sync"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "trigger",
+                "hierarchy-sync"
+              ]
             },
             "description": "Manually trigger agent hierarchy sync from master data API."
           }
@@ -2094,16 +2849,921 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [ { "key": "token", "value": "{{user_token}}" } ]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
             },
             "method": "POST",
             "header": [],
             "url": {
               "raw": "{{base_url}}/integration/trigger/reprocess",
-              "host": ["{{base_url}}"],
-              "path": ["integration", "trigger", "reprocess"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "integration",
+                "trigger",
+                "reprocess"
+              ]
             },
             "description": "Reset all INVALID/ERROR staging records to PENDING for reprocessing."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Review Adjustments",
+      "description": "Review, adjust, hold and approve incentive calculation results before payout.",
+      "item": [
+        {
+          "name": "List Review Adjustments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/review-adjustments?programId={{program_id}}&periodStart={{period_start}}&limit=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments"
+              ],
+              "query": [
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "periodStart",
+                  "value": "{{period_start}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "List incentive results available for review. Supports filtering by program and period with pagination."
+          }
+        },
+        {
+          "name": "Get Review Detail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/review-adjustments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments",
+                "1"
+              ]
+            },
+            "description": "Retrieve full detail of a single review adjustment record including current status and history."
+          }
+        },
+        {
+          "name": "Apply Manual Adjustment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"reason\": \"Manager bonus\",\n  \"notes\": \"Approved by regional head\",\n  \"adjustedBy\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/review-adjustments/1/adjust",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments",
+                "1",
+                "adjust"
+              ]
+            },
+            "description": "Apply a manual monetary adjustment to an incentive result. Requires reason and authoriser."
+          }
+        },
+        {
+          "name": "Hold Result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Pending compliance review\",\n  \"heldBy\": \"compliance.officer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/review-adjustments/1/hold",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments",
+                "1",
+                "hold"
+              ]
+            },
+            "description": "Place an incentive result on hold pending further review or compliance check."
+          }
+        },
+        {
+          "name": "Release Result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"releasedBy\": \"compliance.officer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/review-adjustments/1/release",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments",
+                "1",
+                "release"
+              ]
+            },
+            "description": "Release a previously held incentive result so it can proceed to approval."
+          }
+        },
+        {
+          "name": "Batch Approve",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    1,\n    2,\n    3\n  ],\n  \"approvedBy\": \"finance.head\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/review-adjustments/batch-approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments",
+                "batch-approve"
+              ]
+            },
+            "description": "Approve multiple incentive results in a single operation."
+          }
+        },
+        {
+          "name": "Get Audit Trail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/review-adjustments/1/audit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-adjustments",
+                "1",
+                "audit"
+              ]
+            },
+            "description": "Retrieve the full audit trail for a review adjustment record showing all state changes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - Exception Log",
+      "description": "View and resolve exceptions raised during incentive calculation or data processing.",
+      "item": [
+        {
+          "name": "List Exceptions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/exception-log?status=OPEN&severity=HIGH&limit=25",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "exception-log"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "OPEN"
+                },
+                {
+                  "key": "severity",
+                  "value": "HIGH"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            },
+            "description": "List exception log entries. Filter by status and severity with pagination support."
+          }
+        },
+        {
+          "name": "Get Exception Detail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/exception-log/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "exception-log",
+                "1"
+              ]
+            },
+            "description": "Get full detail of a single exception including stack trace and context data."
+          }
+        },
+        {
+          "name": "Resolve Exception",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"resolvedBy\": \"ops.manager\",\n  \"note\": \"Issue corrected in master data\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/exception-log/1/resolve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "exception-log",
+                "1",
+                "resolve"
+              ]
+            },
+            "description": "Mark an exception as resolved with resolution details and operator note."
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - Executive Summary",
+      "description": "High-level executive dashboard summaries for incentive programme performance.",
+      "item": [
+        {
+          "name": "Get Executive Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard/executive-summary?programId={{program_id}}&period={{period_start}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "executive-summary"
+              ],
+              "query": [
+                {
+                  "key": "programId",
+                  "value": "{{program_id}}"
+                },
+                {
+                  "key": "period",
+                  "value": "{{period_start}}"
+                }
+              ]
+            },
+            "description": "Retrieve executive-level summary metrics including total payouts, participation rates and programme KPIs."
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - System Status",
+      "description": "Monitor overall system health, service availability and background job status.",
+      "item": [
+        {
+          "name": "Get System Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-status/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-status",
+                "summary"
+              ]
+            },
+            "description": "Get aggregated system status summary including database connectivity, queue health and service uptime."
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 - Notifications",
+      "description": "Manage in-app notifications for the current user.",
+      "item": [
+        {
+          "name": "List Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications?unreadOnly=true&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "unreadOnly",
+                  "value": "true"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List notifications for the authenticated user. Optionally filter to unread only."
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/1/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "1",
+                "read"
+              ]
+            },
+            "description": "Mark a single notification as read."
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/mark-all-read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "mark-all-read"
+              ]
+            },
+            "description": "Mark all unread notifications as read for the authenticated user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 - Org & Domain Mapping",
+      "description": "Organisation hierarchy and domain mapping lookups for reporting and access control.",
+      "item": [
+        {
+          "name": "Get Org Mapping",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/org-domain-mapping?view=region",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "org-domain-mapping"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "region"
+                }
+              ]
+            },
+            "description": "Retrieve organisational domain mapping tree. Supports view modes: region, branch, channel."
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 - KPI Config Helpers",
+      "description": "Utility endpoints for KPI configuration management, validation and discovery.",
+      "item": [
+        {
+          "name": "Get KPI Registry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/kpi-config/registry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpi-config",
+                "registry"
+              ]
+            },
+            "description": "List all available KPI definitions in the system registry with metadata and supported aggregation types."
+          }
+        },
+        {
+          "name": "Validate KPI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/kpi-config/1/validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpi-config",
+                "1",
+                "validate"
+              ]
+            },
+            "description": "Run validation checks on a KPI configuration to detect issues before activation."
+          }
+        },
+        {
+          "name": "Get KPI Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/kpi-config/1/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "kpi-config",
+                "1",
+                "summary"
+              ]
+            },
+            "description": "Get a summary view of a single KPI configuration including linked programmes and current status."
           }
         }
       ]
