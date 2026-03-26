@@ -1,10 +1,11 @@
 namespace Incentive.Api.Middleware;
 
 /// <summary>
-/// User authentication middleware placeholder.
-/// Currently passes all requests through — matches Node.js middleware/userAuth.js behavior.
-/// When a user login/session system is implemented, this middleware should verify
-/// the user's identity and set HttpContext.Items["User"] before calling next.
+/// User authentication middleware placeholder — SUPERSEDED.
+/// JWT Bearer authentication is now handled by ASP.NET Core's built-in auth middleware
+/// configured in Extensions/AuthExtensions.cs. All controllers use [Authorize] attributes.
+/// This middleware is retained for backward compatibility but performs no auth checks.
+/// Auth flow: JWT Bearer → [Authorize] attributes → role-based access control.
 /// </summary>
 public class UserAuthMiddleware
 {
@@ -14,7 +15,8 @@ public class UserAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // TODO: Implement user authentication when login system is added
+        // Auth is now handled by JWT Bearer middleware (see AuthExtensions.cs)
+        // This middleware is a pass-through retained for compatibility
         await _next(context);
     }
 }
