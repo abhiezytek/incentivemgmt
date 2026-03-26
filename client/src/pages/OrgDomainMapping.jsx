@@ -65,7 +65,7 @@ const VIEW_TABS = [
 /* ── component ───────────────────────────────────────────── */
 
 export default function OrgDomainMapping() {
-  const { data: apiAgents, isLoading, isError } = useGetAgentsQuery()
+  const { data: apiAgents } = useGetAgentsQuery()
 
   const agents = useMemo(() => {
     if (Array.isArray(apiAgents) && apiAgents.length > 0) return apiAgents

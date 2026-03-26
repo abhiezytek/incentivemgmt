@@ -1,5 +1,5 @@
 // client/src/pages/Dashboard.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Legend, Cell,
@@ -105,7 +105,12 @@ export default function Dashboard() {
     setLoading(false);
   }, [API, program, period]);
 
-  useEffect(() => { fetchDashboard(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  /* Initial data load on mount */
+  const mountRef = useRef(null);
+  if (mountRef.current == null) {
+    mountRef.current = true;
+    fetchDashboard();
+  }
 
   /* ── Loading state ── */
   if (loading && !data) {
