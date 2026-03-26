@@ -1,4 +1,6 @@
+using Incentive.Application.Abstractions.Repositories;
 using Incentive.Infrastructure.Data;
+using Incentive.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +16,13 @@ public static class InfrastructureServiceCollectionExtensions
         // Data access
         services.AddSingleton<DbConnectionFactory>();
         services.AddSingleton<QueryHelper>();
+
+        // Wave 1 repositories
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<ISystemStatusRepository, SystemStatusRepository>();
+        services.AddScoped<INotificationsRepository, NotificationsRepository>();
+        services.AddScoped<IOrgDomainMappingRepository, OrgDomainMappingRepository>();
+        services.AddScoped<IProgramsRepository, ProgramsRepository>();
 
         // TODO: Register BulkInsertUtil, CsvParserUtil, DataMaskUtil when implemented
         // TODO: Register Quartz background jobs when implemented

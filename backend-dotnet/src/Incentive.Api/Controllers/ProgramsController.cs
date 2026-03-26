@@ -1,18 +1,28 @@
+using Incentive.Application.Abstractions.Repositories;
+using Incentive.Domain.Constants;
+using Incentive.Domain.Exceptions;
 using Incentive.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Incentive.Api.Controllers;
 
 /// <summary>
-/// Example controller demonstrating the pattern for Wave 1 migration.
-/// GET /api/v1/programs and /api/programs (unversioned alias).
+/// Programs controller — read-only endpoints.
+/// Auth: NONE (matches Node.js — no auth middleware on programs routes).
+/// Wave 1: GET list, GET by ID, GET preview.
+/// Wave 2 will add: POST, PUT, PATCH /status, DELETE, GET /summary.
 /// </summary>
 [ApiController]
 public class ProgramsController : ControllerBase
 {
     private readonly QueryHelper _queryHelper;
+    private readonly IProgramsRepository _programsRepo;
 
-    public ProgramsController(QueryHelper queryHelper) => _queryHelper = queryHelper;
+    public ProgramsController(QueryHelper queryHelper, IProgramsRepository programsRepo)
+    {
+        _queryHelper = queryHelper;
+        _programsRepo = programsRepo;
+    }
 
     /// <summary>
     /// List all incentive programs.
@@ -39,6 +49,22 @@ public class ProgramsController : ControllerBase
         return Ok(program);
     }
 
-    // Additional endpoints (POST, PUT, PATCH /status, DELETE, GET /summary, GET /preview)
+    /// <summary>
+    /// Complete scheme preview including KPIs, payout rules, qualifying rules, and stats.
+    /// Matches Node.js: GET /api/programs/:id/preview
+    /// Returns 404 with apiError('VAL_006') if program not found.
+    /// </summary>
+    [HttpGet("api/v1/programs/{id:int}/preview")]
+    [HttpGet("api/programs/{id:int}/preview")]
+    public async Task<IActionResult> GetPreview(int id)
+    {
+        var result = await _programsRepo.GetProgramPreviewAsync(id);
+        if (result == null)
+            throw new ApiException(ErrorCodes.VAL_006, new { field = "program" });
+
+        return Ok(result);
+    }
+
+    // Additional endpoints (POST, PUT, PATCH /status, DELETE, GET /summary)
     // will be implemented in Wave 2. See ROUTE_MIGRATION_MATRIX.md for the full list.
 }
