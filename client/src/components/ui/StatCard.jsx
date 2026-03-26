@@ -24,9 +24,7 @@ export default function StatCard({
   accentColor,
 }) {
   const iconColors = COLOR_MAP[color] || COLOR_MAP.blue
-  const accent = accentColor
-    ? ACCENT_MAP[accentColor] || `border-l-[${accentColor}]`
-    : ''
+  const accent = accentColor ? (ACCENT_MAP[accentColor] || '') : ''
 
   return (
     <div
