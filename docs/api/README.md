@@ -1,6 +1,6 @@
 # API Documentation
 
-> Insurance Incentive Management System — API v1.0.0
+> Insurance Incentive Management System — API v1.1.0
 
 ---
 
@@ -29,6 +29,7 @@ psql -U postgres -d incentivemgmt -f src/db/migrations/003_integration_schema.sq
 psql -U postgres -d incentivemgmt -f src/db/migrations/003_payout_disbursement_log.sql
 psql -U postgres -d incentivemgmt -f src/db/migrations/004_staging_tables.sql
 psql -U postgres -d incentivemgmt -f src/db/migrations/005_outbound_file_log.sql
+psql -U postgres -d incentivemgmt -f src/db/migrations/006_additive_tables.sql
 
 # 5. Start the server
 npm start
@@ -59,6 +60,23 @@ curl http://localhost:5000/api/health
 | [INBOUND_HIERARCHY_API.md](INBOUND_HIERARCHY_API.md) | Hierarchy system integration spec |
 | [OUTBOUND_SAP_FICO.md](OUTBOUND_SAP_FICO.md) | SAP FICO payment file spec |
 | [OUTBOUND_ORACLE_FINANCIALS.md](OUTBOUND_ORACLE_FINANCIALS.md) | Oracle Financials payment file spec |
+
+---
+
+## v1.1.0 — New API Groups (Additive Architecture)
+
+All v1.1.0 endpoints are **additive only** — they extend the system without modifying the core calculation engine, existing tables, or v1.0.0 routes. New modules sit *around* the calculation engine, reading from `ins_incentive_results` and writing to four new dedicated tables. See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
+| API Group | Base Path | Key Endpoints |
+|-----------|-----------|---------------|
+| Review Adjustments | `/api/review-adjustments` | List, detail, adjust, hold, release, batch-approve, audit trail |
+| Exception Log | `/api/exception-log` | List, detail, resolve/dismiss |
+| Executive Dashboard | `/api/dashboard/executive-summary` | KPI cards, alerts, pipeline, channel performance |
+| System Status | `/api/system-status` | Database, sync, integration, file processing health |
+| Notifications | `/api/notifications` | List, mark read, mark all read |
+| Org & Domain Mapping | `/api/org-domain-mapping` | Hierarchical org mapping by dimension |
+| KPI Config Helpers | `/api/kpi-config` | Registry, validate, summary |
+| Program Preview | `/api/programs/:id/preview` | Full program preview with KPIs, rules, stats |
 
 ---
 
@@ -202,3 +220,4 @@ All endpoints are available under both **`/api/v1/…`** (versioned) and **`/api
 - **Error Codes** — see [ERROR_CODES.md](ERROR_CODES.md) for the full list of `AUTH_*`, `VAL_*`, `BUS_*`, `INT_*`, and `CALC_*` codes with HTTP status mapping and resolution steps.
 - **Postman** — import [IncentiveSystem.postman_collection.json](IncentiveSystem.postman_collection.json) and one of the [environments/](environments/) files. See [POSTMAN_GUIDE.md](POSTMAN_GUIDE.md) for walkthrough.
 - **Versioning** — see [CHANGELOG.md](CHANGELOG.md) for API version history and how to introduce a new version.
+- **v1.1.0 Additive Architecture** — all new endpoints and tables are additive; the core calculation engine, existing result tables, and v1.0.0 routes remain unchanged. See [CHANGELOG.md](CHANGELOG.md) § v1.1.0 for details.

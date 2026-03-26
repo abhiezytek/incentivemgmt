@@ -4,12 +4,92 @@
 
 | Item | Policy |
 |------|--------|
-| **Current version** | `v1.0.0` |
+| **Current version** | `v1.1.0` |
 | **Scheme** | URL prefix — `/api/v1/...` |
 | **Breaking changes** | Bump **major** version (v2, v3 …) |
 | **New endpoints** | Bump **minor** version (v1.1.0, v1.2.0 …) |
 | **Bug fixes** | Bump **patch** version (v1.0.1, v1.0.2 …) |
 | **Backward compatibility** | Unversioned `/api/...` always aliases the latest stable version |
+
+---
+
+## v1.1.0 — March 2026
+
+### Added
+
+#### Review Adjustments (`/api/review-adjustments`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/review-adjustments` | List results with adjustments for review |
+| GET | `/api/review-adjustments/:id` | Get result detail with adjustments and audit trail |
+| POST | `/api/review-adjustments/:id/adjust` | Apply manual adjustment (additive) |
+| POST | `/api/review-adjustments/:id/hold` | Place result on hold (additive) |
+| POST | `/api/review-adjustments/:id/release` | Release held result (additive) |
+| POST | `/api/review-adjustments/batch-approve` | Batch approve results with audit trail |
+| GET | `/api/review-adjustments/:id/audit` | Get full audit trail for result |
+
+#### Exception Log (`/api/exception-log`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/exception-log` | List operational exceptions with filtering |
+| GET | `/api/exception-log/:id` | Get single exception detail |
+| POST | `/api/exception-log/:id/resolve` | Resolve or dismiss exception |
+
+#### Executive Dashboard (`/api/dashboard/executive-summary`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/dashboard/executive-summary` | Executive KPI cards, alerts, pipeline, channel performance |
+
+#### System Status (`/api/system-status`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/system-status/summary` | Database, sync, integration, and file processing health |
+
+#### Notifications (`/api/notifications`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/notifications` | List notification events |
+| POST | `/api/notifications/:id/read` | Mark notification as read |
+| POST | `/api/notifications/mark-all-read` | Mark all notifications as read |
+
+#### Org & Domain Mapping (`/api/org-domain-mapping`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/org-domain-mapping` | Hierarchical org mapping by dimension |
+
+#### KPI Config Helpers (`/api/kpi-config`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/kpi-config/registry` | Full KPI registry with milestones and programs |
+| POST | `/api/kpi-config/:id/validate` | Validate KPI configuration |
+| GET | `/api/kpi-config/:id/summary` | KPI summary with slabs and qualifying rules |
+
+#### Program Preview (`/api/programs/:id/preview`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/programs/:id/preview` | Full program preview with KPIs, rules, stats |
+
+### Database Changes
+- Added migration `006_additive_tables.sql` creating 4 additive tables:
+  - `incentive_adjustments` — manual adjustments stored separately from calculated results
+  - `incentive_review_actions` — audit trail for review actions
+  - `operational_exceptions` — data quality and integration exception log
+  - `notification_events` — dashboard notification events
+- **No existing tables modified** — all changes are additive only
+- No ALTER, DROP, triggers, or stored procedure changes
+
+### Testing & Audit
+- Added `calculationRegressionTest.js` — 36 regression tests confirming calculation integrity
+- Added `calculationQueryAudit.sql` — SQL audit queries for regression validation
+- Post-change calculation audit confirms zero impact to base calculation engine
+- UAT package added under `/docs/UAT/` with 13 test artifacts
+
+### Architecture Notes
+- All new routes registered under both `/api/v1/` and `/api/` prefixes
+- New routes use `userAuth` middleware (except integration routes using `systemAuth`)
+- Additive modules sit around the calculation engine, not inside it
+- Core result tables, rate lookup, persistency logic, and override logic unchanged
+- Export eligibility continues to use `ins_incentive_results` status directly
 
 ---
 
