@@ -27,6 +27,10 @@ public static class InfrastructureServiceCollectionExtensions
         // Wave 2 repositories
         services.AddScoped<IKpiConfigRepository, KpiConfigRepository>();
 
+        // Wave 3 repositories
+        services.AddScoped<IReviewAdjustmentsRepository, ReviewAdjustmentsRepository>();
+        services.AddScoped<IExceptionLogRepository, ExceptionLogRepository>();
+
         // TODO: Register BulkInsertUtil, CsvParserUtil, DataMaskUtil when implemented
         // TODO: Register Quartz background jobs when implemented
         // TODO: Register external service clients (SFTP, Hierarchy API, Penta) when implemented

@@ -5,6 +5,7 @@
 >
 > **Wave 1 Status**: ✅ = Migrated to .NET | ⬜ = Not yet migrated
 > **Wave 2 Status**: 🔵 = Migrated in Wave 2
+> **Wave 3 Status**: 🟢 = Migrated in Wave 3
 
 ---
 
@@ -95,21 +96,21 @@
 | `incentiveResults.js` | POST | `/api/incentive-results/initiate-payment` | Initiate payment | `IncentiveResultsController` | `InitiatePayment(...)` | P3 | APPROVED→INITIATED |
 | `incentiveResults.js` | POST | `/api/incentive-results/mark-paid` | Mark paid | `IncentiveResultsController` | `MarkPaid(...)` | P3 | INITIATED→PAID |
 | `incentiveResults.js` | POST | `/api/incentive-results/:id/approve` | Single approve | `IncentiveResultsController` | `ApproveSingle(int id, ...)` | P3 | DRAFT→APPROVED |
-| `reviewAdjustments.js` | GET | `/api/review-adjustments` | List for review | `ReviewAdjustmentsController` | `GetAll(...)` | P1 | Read-only, virtual HOLD status |
-| `reviewAdjustments.js` | GET | `/api/review-adjustments/:id` | Get detail + adjustments | `ReviewAdjustmentsController` | `GetById(int id)` | P1 | Read-only |
-| `reviewAdjustments.js` | POST | `/api/review-adjustments/:id/adjust` | Apply adjustment | `ReviewAdjustmentsController` | `Adjust(int id, ...)` | P3 | Additive-only |
-| `reviewAdjustments.js` | POST | `/api/review-adjustments/:id/hold` | Hold result | `ReviewAdjustmentsController` | `Hold(int id, ...)` | P3 | Virtual HOLD |
-| `reviewAdjustments.js` | POST | `/api/review-adjustments/:id/release` | Release hold | `ReviewAdjustmentsController` | `Release(int id, ...)` | P3 | Clear HOLD |
-| `reviewAdjustments.js` | POST | `/api/review-adjustments/batch-approve` | Batch approve | `ReviewAdjustmentsController` | `BatchApprove(...)` | P3 | Delegates to existing logic |
-| `reviewAdjustments.js` | GET | `/api/review-adjustments/:id/audit` | Audit trail | `ReviewAdjustmentsController` | `GetAuditTrail(int id)` | P1 | Read-only |
+| `reviewAdjustments.js` | GET | `/api/review-adjustments` | List for review | `ReviewAdjustmentsController` | `GetList(...)` | P3 | 🟢 Migrated Wave 3 |
+| `reviewAdjustments.js` | GET | `/api/review-adjustments/:id` | Get detail + adjustments | `ReviewAdjustmentsController` | `GetDetail(int id)` | P3 | 🟢 Migrated Wave 3 |
+| `reviewAdjustments.js` | POST | `/api/review-adjustments/:id/adjust` | Apply adjustment | `ReviewAdjustmentsController` | `Adjust(int id, ...)` | P3 | 🟢 Migrated Wave 3, additive-only |
+| `reviewAdjustments.js` | POST | `/api/review-adjustments/:id/hold` | Hold result | `ReviewAdjustmentsController` | `Hold(int id, ...)` | P3 | 🟢 Migrated Wave 3, virtual HOLD |
+| `reviewAdjustments.js` | POST | `/api/review-adjustments/:id/release` | Release hold | `ReviewAdjustmentsController` | `Release(int id, ...)` | P3 | 🟢 Migrated Wave 3 |
+| `reviewAdjustments.js` | POST | `/api/review-adjustments/batch-approve` | Batch approve | `ReviewAdjustmentsController` | `BatchApprove(...)` | P3 | 🟢 Migrated Wave 3 |
+| `reviewAdjustments.js` | GET | `/api/review-adjustments/:id/audit` | Audit trail | `ReviewAdjustmentsController` | `GetAuditTrail(int id)` | P3 | 🟢 Migrated Wave 3 |
 
 ## Admin / Config Routes
 
 | Node Route File | HTTP Method | Endpoint | Purpose | Target .NET Controller | Target Action | Priority | Notes |
 |-----------------|-------------|----------|---------|----------------------|---------------|----------|-------|
-| `exceptionLog.js` | GET | `/api/exception-log` | List exceptions | `ExceptionLogController` | `GetAll(...)` | P1 | Read-only |
-| `exceptionLog.js` | GET | `/api/exception-log/:id` | Get exception detail | `ExceptionLogController` | `GetById(int id)` | P1 | Read-only |
-| `exceptionLog.js` | POST | `/api/exception-log/:id/resolve` | Resolve exception | `ExceptionLogController` | `Resolve(int id, ...)` | P3 | Status transition |
+| `exceptionLog.js` | GET | `/api/exception-log` | List exceptions | `ExceptionLogController` | `GetList(...)` | P3 | 🟢 Migrated Wave 3 |
+| `exceptionLog.js` | GET | `/api/exception-log/:id` | Get exception detail | `ExceptionLogController` | `GetDetail(int id)` | P3 | 🟢 Migrated Wave 3 |
+| `exceptionLog.js` | POST | `/api/exception-log/:id/resolve` | Resolve exception | `ExceptionLogController` | `Resolve(int id, ...)` | P3 | 🟢 Migrated Wave 3 |
 | `notifications.js` | GET | `/api/notifications` | List notifications | `NotificationsController` | `GetAll(...)` | P1 | ✅ Migrated Wave 1 |
 | `notifications.js` | POST | `/api/notifications/:id/read` | Mark read | `NotificationsController` | `MarkRead(int id)` | P2 | ✅ Migrated Wave 1 |
 | `notifications.js` | POST | `/api/notifications/mark-all-read` | Mark all read | `NotificationsController` | `MarkAllRead()` | P2 | ✅ Migrated Wave 1 |
