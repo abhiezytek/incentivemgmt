@@ -98,7 +98,6 @@ const NAV_SECTIONS = [
 ]
 
 export default function AppSidebar({
-  currentPath,
   onNavigate,
   collapsed = false,
   onToggleCollapse,
