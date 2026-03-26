@@ -724,6 +724,152 @@ async function testGapFixes() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   TEST GROUP 10: ADDITIVE API ENDPOINTS
+   (Backend-safe extension — these only touch new tables)
+   ═══════════════════════════════════════════════════════ */
+
+async function testAdditiveEndpoints() {
+  console.log('\n━━━ TEST GROUP 10: ADDITIVE API ENDPOINTS ━━━');
+
+  // T30 — Executive summary
+  await run('T30', 'GET /dashboard/executive-summary → kpiCards', async () => {
+    const { status, data } = await api('/dashboard/executive-summary');
+    assert(status === 200, '200', status);
+    assert(data.kpiCards !== undefined, 'kpiCards exists', Object.keys(data));
+    assert(typeof data.kpiCards.activeSchemes === 'number', 'activeSchemes is number', data.kpiCards.activeSchemes);
+  });
+
+  // T31 — Review adjustments list
+  await run('T31', 'GET /review-adjustments → 200 with summary and rows', async () => {
+    const { status, data } = await api('/review-adjustments');
+    assert(status === 200, '200', status);
+    assert(data.summary !== undefined, 'summary present', Object.keys(data));
+    assert(Array.isArray(data.rows), 'rows is array', typeof data.rows);
+    assert(data.pagination !== undefined, 'pagination present', Object.keys(data));
+  });
+
+  // T32 — Review adjustments single (non-existent)
+  await run('T32', 'GET /review-adjustments/999999 → 404', async () => {
+    const { status } = await api('/review-adjustments/999999');
+    assert(status === 404, '404', status);
+  });
+
+  // T33 — Adjust with missing amount
+  await run('T33', 'POST /review-adjustments/999999/adjust → 400 without amount', async () => {
+    const { status, data } = await api('/review-adjustments/999999/adjust', {
+      method: 'POST',
+      body: { reason: 'test' },
+    });
+    assert(status === 400, '400', status);
+    assert(data.code === 'VAL_001', 'VAL_001', data.code);
+  });
+
+  // T34 — Batch approve with empty ids
+  await run('T34', 'POST /review-adjustments/batch-approve → 400 with empty ids', async () => {
+    const { status, data } = await api('/review-adjustments/batch-approve', {
+      method: 'POST',
+      body: { ids: [] },
+    });
+    assert(status === 400, '400', status);
+    assert(data.code === 'VAL_001', 'VAL_001', data.code);
+  });
+
+  // T35 — Exception log list
+  await run('T35', 'GET /exception-log → 200 with summary', async () => {
+    const { status, data } = await api('/exception-log');
+    assert(status === 200, '200', status);
+    assert(data.summary !== undefined, 'summary present', Object.keys(data));
+    assert(Array.isArray(data.rows), 'rows is array', typeof data.rows);
+  });
+
+  // T36 — Exception log single (non-existent)
+  await run('T36', 'GET /exception-log/999999 → 404', async () => {
+    const { status } = await api('/exception-log/999999');
+    assert(status === 404, '404', status);
+  });
+
+  // T37 — Resolve exception with invalid status
+  await run('T37', 'POST /exception-log/999999/resolve → 400 with invalid status', async () => {
+    const { status, data } = await api('/exception-log/999999/resolve', {
+      method: 'POST',
+      body: { status: 'INVALID' },
+    });
+    assert(status === 400, '400', status);
+    assert(data.code === 'VAL_003', 'VAL_003', data.code);
+  });
+
+  // T38 — System status
+  await run('T38', 'GET /system-status/summary → database CONNECTED', async () => {
+    const { status, data } = await api('/system-status/summary');
+    assert(status === 200, '200', status);
+    assert(data.database?.status === 'CONNECTED', 'CONNECTED', data.database?.status);
+  });
+
+  // T39 — Notifications list
+  await run('T39', 'GET /notifications → 200 with rows', async () => {
+    const { status, data } = await api('/notifications');
+    assert(status === 200, '200', status);
+    assert(Array.isArray(data.rows), 'rows is array', typeof data.rows);
+  });
+
+  // T40 — Org domain mapping
+  await run('T40', 'GET /org-domain-mapping → 200 with summary', async () => {
+    const { status, data } = await api('/org-domain-mapping');
+    assert(status === 200, '200', status);
+    assert(data.summary !== undefined, 'summary present', Object.keys(data));
+    assert(data.view === 'region', 'default view is region', data.view);
+  });
+
+  // T41 — Org domain mapping by channel
+  await run('T41', 'GET /org-domain-mapping?view=channel → channel view', async () => {
+    const { status, data } = await api('/org-domain-mapping?view=channel');
+    assert(status === 200, '200', status);
+    assert(data.view === 'channel', 'view is channel', data.view);
+  });
+
+  // T42 — KPI config registry
+  await run('T42', 'GET /kpi-config/registry → 200 with stats and kpis', async () => {
+    const { status, data } = await api('/kpi-config/registry');
+    assert(status === 200, '200', status);
+    assert(data.stats !== undefined, 'stats present', Object.keys(data));
+    assert(Array.isArray(data.kpis), 'kpis is array', typeof data.kpis);
+  });
+
+  // T43 — KPI validate (non-existent)
+  await run('T43', 'POST /kpi-config/999999/validate → 404', async () => {
+    const { status } = await api('/kpi-config/999999/validate', { method: 'POST' });
+    assert(status === 404, '404', status);
+  });
+
+  // T44 — KPI summary (non-existent)
+  await run('T44', 'GET /kpi-config/999999/summary → 404', async () => {
+    const { status } = await api('/kpi-config/999999/summary');
+    assert(status === 404, '404', status);
+  });
+
+  // T45 — Scheme preview
+  await run('T45', 'GET /programs/:id/preview → 200 with kpis and payoutRules', async () => {
+    const { data: programs } = await api('/programs');
+    if (programs.length > 0) {
+      const { status, data } = await api(`/programs/${programs[0].id}/preview`);
+      assert(status === 200, '200', status);
+      assert(Array.isArray(data.kpis), 'kpis is array', typeof data.kpis);
+      assert(Array.isArray(data.payoutRules), 'payoutRules is array', typeof data.payoutRules);
+      assert(typeof data.agentCount === 'number', 'agentCount is number', typeof data.agentCount);
+    }
+  });
+
+  // T46 — Verify original dashboard still works after additive changes
+  await run('T46', 'GET /dashboard/summary → original endpoint still functional', async () => {
+    const { status, data } = await api('/dashboard/summary');
+    assert(status === 200, '200', status);
+    assert(data.kpi !== undefined, 'kpi section exists', Object.keys(data));
+    assert(data.channelBreakdown !== undefined, 'channelBreakdown exists', Object.keys(data));
+    assert(data.pipelineStatus !== undefined, 'pipelineStatus exists', Object.keys(data));
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
    MAIN — Run all test groups
    ═══════════════════════════════════════════════════════ */
 
@@ -758,6 +904,7 @@ async function main() {
   await testPayoutFlow();
   await testUploadValidation();
   await testGapFixes();
+  await testAdditiveEndpoints();
 
   /* ── Final Report ──────────────────────────────────── */
 
@@ -785,6 +932,7 @@ async function main() {
     { name: 'PAYOUT FLOW',       prefix: ['T19', 'T20', 'T21'] },
     { name: 'UPLOAD VALIDATION', prefix: ['T22', 'T23'] },
     { name: 'GAP FIX VALIDATIONS', prefix: ['T24', 'T25', 'T26', 'T27', 'T28', 'T29'] },
+    { name: 'ADDITIVE ENDPOINTS', prefix: ['T30', 'T31', 'T32', 'T33', 'T34', 'T35', 'T36', 'T37', 'T38', 'T39', 'T40', 'T41', 'T42', 'T43', 'T44', 'T45', 'T46'] },
   ];
 
   console.log('  ── Breakdown by group ──');
