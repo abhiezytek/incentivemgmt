@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Incentive.Api/Incentive.Api.csproj" />
+    <Project Path="src/Incentive.Application/Incentive.Application.csproj" />
+    <Project Path="src/Incentive.Domain/Incentive.Domain.csproj" />
+    <Project Path="src/Incentive.Infrastructure/Incentive.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Incentive.IntegrationTests/Incentive.IntegrationTests.csproj" />
+    <Project Path="tests/Incentive.RegressionTests/Incentive.RegressionTests.csproj" />
+  </Folder>
+</Solution>
